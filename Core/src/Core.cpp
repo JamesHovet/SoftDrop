@@ -523,7 +523,7 @@ int Core::step(){
             
             /* JSR */
         case '\x20':
-            std::cout << "JSR" << std::endl;
+            std::cout << prepend << "JSR" << std::endl;
             prepend.append(".");
             push((unsigned char)((PC + 1) >> 8));
             push((unsigned char)((PC + 1) & 0xff));
@@ -534,7 +534,7 @@ int Core::step(){
             /* RTS */
         case '\x60':
             stack = &M[0x100];
-            std::cout << "RTS" << std::endl;
+            std::cout << prepend << "RTS" << std::endl;
             prepend.pop_back();
             jump(pullAddress() + 1);
             printf("jumping to 0x%4x\n", PC);

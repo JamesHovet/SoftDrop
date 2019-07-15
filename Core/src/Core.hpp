@@ -21,6 +21,7 @@
 #define CARRY_FLAG '\x01'
 #define OVERFLOW_FLAG '\x40'
 #define INTERRUPT_FLAG '\x04'
+#define DECIMAL_FLAG '\x08'
 #define PAGE 0x100
 #define STACK_TOP 255
 #define PAGE_ONE 0x100
@@ -57,7 +58,8 @@ public:
         negative = NEGATIVE_FLAG,
         carry = CARRY_FLAG,
         overflow = OVERFLOW_FLAG,
-        interrupt = INTERRUPT_FLAG
+        interrupt = INTERRUPT_FLAG,
+        decimal = DECIMAL_FLAG
     };
     
 private:

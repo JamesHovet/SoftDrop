@@ -488,6 +488,18 @@ int Core::step(){
             return 0;
             break;
             
+            /* SED */
+        case '\xf8':
+            setFlag(Flag::decimal, true);
+            return 0;
+            break;
+            
+            /* CLD */
+        case '\xd8':
+            setFlag(Flag::decimal, false);
+            return 0;
+            break;
+            
             /* TAY */
         case '\xa8':
             Y = A;

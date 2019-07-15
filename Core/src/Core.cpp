@@ -46,6 +46,20 @@ const Core::AddressMode addressModeMap[0x20] = {
     Core::AddressMode::special
 };
 
+// debug
+const std::string debugOpNames[] = {
+    "BRK","ORA","STP","SLO","NOP","ORA","ASL","SLO","PHP","ORA","ASL","ANC","NOP","ORA","ASL","SLO","BPL","ORA","STP","SLO","NOP","ORA","ASL","SLO","CLC","ORA","NOP","SLO","NOP","ORA","ASL","SLO","JSR","AND","STP","RLA","BIT","AND","ROL","RLA","PLP","AND","ROL","ANC","BIT","AND","ROL","RLA","BMI","AND","STP","RLA","NOP","AND","ROL","RLA","SEC","AND","NOP","RLA","NOP","AND","ROL","RLA","RTI","EOR","STP","SRE","NOP","EOR","LSR","SRE","PHA","EOR","LSR","ALR","JMP","EOR","LSR","SRE","BVC","EOR","STP","SRE","NOP","EOR","LSR","SRE","CLI","EOR","NOP","SRE","NOP","EOR","LSR","SRE","RTS","ADC","STP","RRA","NOP","ADC","ROR","RRA","PLA","ADC","ROR","ARR","JMP","ADC","ROR","RRA","BVS","ADC","STP","RRA","NOP","ADC","ROR","RRA","SEI","ADC","NOP","RRA","NOP","ADC","ROR","RRA","NOP","STA","NOP","SAX","STY","STA","STX","SAX","DEY","NOP","TXA","XAA","STY","STA","STX","SAX","BCC","STA","STP","AHX","STY","STA","STX","SAX","TYA","STA","TXS","TAS","SHY","STA","SHX","AHX","LDY","LDA","LDX","LAX","LDY","LDA","LDX","LAX","TAY","LDA","TAX","LAX","LDY","LDA","LDX","LAX","BCS","LDA","STP","LAX","LDY","LDA","LDX","LAX","CLV","LDA","TSX","LAS","LDY","LDA","LDX","LAX","CPY","CMP","NOP","DCP","CPY","CMP","DEC","DCP","INY","CMP","DEX","AXS","CPY","CMP","DEC","DCP","BNE","CMP","STP","DCP","NOP","CMP","DEC","DCP","CLD","CMP","NOP","DCP","NOP","CMP","DEC","DCP","CPX","SBC","NOP","ISC","CPX","SBC","INC","ISC","INX","SBC","NOP","SBC","CPX","SBC","INC","ISC","BEQ","SBC","STP","ISC","NOP","SBC","INC","ISC","SED","SBC","NOP","ISC","NOP","SBC","INC","ISC"
+    
+};
+const int debugOpBytes[] = {
+    1,2,0,0,0,2,2,0,1,2,1,0,0,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,3,2,0,0,2,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,1,2,0,0,0,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,1,2,0,0,0,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,0,2,0,0,2,2,2,0,1,0,1,0,3,3,3,0,2,2,0,0,2,2,2,0,0,3,1,0,0,3,0,0,2,2,2,0,2,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,2,2,2,0,1,3,1,0,3,3,3,0,2,2,0,0,2,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,2,2,0,0,2,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0
+};
+
+static int printable(char byte){
+    return (((unsigned short)byte)&0xff);
+}
+
+
 void Core::loadIntoMemory(char* bytes, unsigned short address, unsigned short length){
     memcpy(&M[address], bytes, length);
 }
@@ -80,11 +94,29 @@ int Core::step(){
     AddressMode mode = getAddressMode(op);
     
     //debug
-    printf("PC: %4x\topcode: 0x%2x\tmode: 0x%x\tclockCycles: %d\n",
+    char* stack;
+    std::cout << prepend;
+    printf("$%4x\top: 0x%2x\tm: 0x%x\t",
            PC - 1,
-           (((short)op)&0x00ff),
-           mode,
-           cycleCounts[(unsigned char)op]);
+           printable(op),
+           mode);
+    
+    printf("A:%2x\tX:%2x\tY:%2x\tSP:%2x\tf:%2x\t",
+           printable(A),
+           printable(X),
+           printable(Y),
+           printable(SP),
+           printable(flags));
+    
+    std::cout << debugOpNames[op_u];
+    
+    for(int i = 0; i < debugOpBytes[op_u] - 1; i++){
+        std::cout << " " << std::hex << printable(M[PC + i]);
+    }
+    
+    std::cout << std::endl;
+    
+    
     
     /* LDA */
     switch (op) {
@@ -391,7 +423,6 @@ int Core::step(){
             
             /* BNE */
         case '\xd0':
-            debugPrintCPU();
             branchConditional(mode, !getFlag(Flag::zero));
             return 0;
             break;
@@ -492,13 +523,19 @@ int Core::step(){
             
             /* JSR */
         case '\x20':
-            push((unsigned char)((PC + 2) >> 8));
-            push((unsigned char)((PC + 2) & 0xff) - 1);
+            std::cout << "JSR" << std::endl;
+            prepend.append(".");
+            push((unsigned char)((PC + 1) >> 8));
+            push((unsigned char)((PC + 1) & 0xff));
             jump(getAddress(mode));
             return 0;
             break;
             
+            /* RTS */
         case '\x60':
+            stack = &M[0x100];
+            std::cout << "RTS" << std::endl;
+            prepend.pop_back();
             jump(pullAddress() + 1);
             printf("jumping to 0x%4x\n", PC);
             return 0;
@@ -712,7 +749,7 @@ void Core::bit(char M){
 
 void Core::branch(AddressMode mode){
     signed char offset = getByte(mode, true);
-    std::cout << "offset: " << (int)offset << std::endl;
+//    std::cout << "offset: " << std::dec << (int)offset << std::endl;
     clock ++;
     jump(PC + offset);
 }
@@ -811,7 +848,12 @@ Core::AddressMode Core::getAddressMode(char opcode){
 }
 
 void Core::debugPrintCPU(){
-    printf("A:%2x\tX:%2x\tY:%2x\tflags:%2x\n", A, X, Y, (unsigned char)flags);
+    printf("A:%2x\tX:%2x\tY:%2x\tSP:%2x\tf:%2x\n",
+           printable(A),
+           printable(X),
+           printable(Y),
+           printable(SP),
+           printable(flags));
 }
 
 //TODO: debug disassembly printing

@@ -25,6 +25,14 @@
 #define STACK_TOP 255
 #define PAGE_ONE 0x100
 
+class Memory {
+private:
+    char Mem[0x10000];
+public:
+    char operator[](unsigned short address) const {return Mem[address];}
+    char & operator[](unsigned short address) {return Mem[address];}
+};
+
 class Core{
 public:
     enum AddressMode {
@@ -60,7 +68,11 @@ private:
     char flags = DEFAULT_FLAGS;//NV-BDIZC; the 3rd most significant bit is always 1
     unsigned short PC;
     unsigned long clock;
-    char M[0x10000];
+    
+    Memory M;
+    
+    // debug
+    std::string prepend;
     
     // Abstractions
     unsigned short getAddress(AddressMode mode);
@@ -138,6 +150,7 @@ public:
         X = 0;
         Y = 0;
         SP = STACK_TOP;
+        prepend = ""; //debug
         while(step() == 0);
         printf("clock: %d\n\n", clock);
     }

@@ -81,13 +81,10 @@ int Core::step(){
     
     //debug
     printf("PC: %4x\topcode: 0x%2x\tmode: 0x%x\tclockCycles: %d\n",
-           PC,
+           PC - 1,
            (((short)op)&0x00ff),
            mode,
            cycleCounts[(unsigned char)op]);
-    
-    char* PRG = &M[0x4020];
-    unsigned short localPC = PC - 0x4020;
     
     /* LDA */
     switch (op) {
@@ -493,6 +490,20 @@ int Core::step(){
             return 0;
             break;
             
+            /* JSR */
+        case '\x20':
+            push((unsigned char)((PC + 2) >> 8));
+            push((unsigned char)((PC + 2) & 0xff) - 1);
+            jump(getAddress(mode));
+            return 0;
+            break;
+            
+        case '\x60':
+            jump(pullAddress() + 1);
+            printf("jumping to 0x%4x\n", PC);
+            return 0;
+            break;
+            
             /* BRK */
         case '\x00':
             return 1;
@@ -714,6 +725,14 @@ void Core::branchConditional(AddressMode mode, bool condition){
     }
 }
 
+unsigned short Core::pullAddress(){
+    char low = 0;
+    char high = 0;
+    pull(&low);
+    pull(&high);
+    return ((unsigned short)(high) << 8) + (unsigned char)low;
+}
+
 //void Core::push(char byte){
 //    M[PAGE_ONE + SP--] = byte;
 //}
@@ -742,6 +761,10 @@ Core::AddressMode Core::getAddressMode(char opcode){
     // 0x80, 0xa0, 0xc0, 0xe0
     if(col == 0 && (unsigned char)opcode > 0x60){
         return immediete;
+    }
+    // JSR
+    if (opcode == '\x20'){
+        return absolute;
     }
     // column 0x0C
     if(col == 0x0c){
@@ -791,4 +814,5 @@ void Core::debugPrintCPU(){
     printf("A:%2x\tX:%2x\tY:%2x\tflags:%2x\n", A, X, Y, (unsigned char)flags);
 }
 
-//TODO: Subroutines (JSR, RTS)
+//TODO: debug disassembly printing
+//TODO: Zero page wrapping

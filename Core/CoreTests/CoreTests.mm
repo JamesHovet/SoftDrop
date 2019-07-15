@@ -338,6 +338,40 @@ Core cpu;
     XCTAssert(cpu.X == '\xf0');
 }
 
+- (void) testSubRoutine {
+    /* JSR
+     Address  Hexdump   Dissassembly
+     -------------------------------
+     $0600    20 05 06  JSR $0605
+     $0603    a9 44     LDA #$44
+     $0605    a9 55     LDA #$55
+     $0607    00        BRK
+    */
+    cpu.runProgram(""); // reset registers
+    cpu.loadIntoMemory("20 05 06 a9 44 a9 55 00", 0x0600);
+    cpu.setPC(0x0600);
+    while(cpu.step() == 0);
+    XCTAssert(cpu.A == '\x55');
+    XCTAssert(cpu.SP == 253);
+    XCTAssert(cpu.M[0x1ff] == '\x06');
+    XCTAssert(cpu.M[0x1fe] == '\x02');
+    
+    /* RTS
+     Address  Hexdump   Dissassembly
+     -------------------------------
+     $0600    20 06 06  JSR $0606
+     $0603    a9 55     LDA #$55
+     $0605    00        BRK
+     $0606    60        RTS
+    */
+    cpu.runProgram(""); // reset registers
+    cpu.loadIntoMemory("20 06 06 a9 55 00 60 00", 0x0600);
+    cpu.setPC(0x0600);
+    while(cpu.step() == 0);
+    XCTAssert(cpu.A == '\x55');
+    XCTAssert(cpu.SP == 255);
+}
+
 - (void) testShiftAndRotate {
     /* ASL */
     cpu.runProgram("a9 01 0a 00");

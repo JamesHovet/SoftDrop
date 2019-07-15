@@ -58,9 +58,9 @@ private:
     char Y;
     unsigned char SP = STACK_TOP;
     char flags = DEFAULT_FLAGS;//NV-BDIZC; the 3rd most significant bit is always 1
-    short PC;
+    unsigned short PC;
     unsigned long clock;
-    char M[0xFFFF];
+    char M[0x10000];
     
     // Abstractions
     unsigned short getAddress(AddressMode mode);
@@ -100,6 +100,7 @@ private:
     void branchConditional(AddressMode mode, bool condition);
     void push(char byte){M[PAGE_ONE + SP--] = byte;}
     void pull(char* dest){*dest = M[PAGE_ONE + ++SP];}
+    unsigned short pullAddress();
     
     // Utils
     void setFlag(Flag flag, bool val);

@@ -372,6 +372,25 @@ Core cpu;
     XCTAssert(cpu.SP == 255);
 }
 
+- (void) testRTI {
+    /* RTI
+     Address  Hexdump   Dissassembly
+     -------------------------------
+     $0600    a9 02     LDA #$02
+     $0602    48        PHA
+     $0603    a9 04     LDA #$04
+     $0605    48        PHA
+     $0606    a9 03     LDA #$03
+     $0608    48        PHA
+     $0609    40        RTI
+    */
+    cpu.runProgram("a9 02 48 a9 04 48 a9 03 48 40 00");
+    XCTAssert(cpu.PC == 0x205); //0x0205
+    XCTAssert(cpu.getFlag(Core::Flag::zero));
+    XCTAssert(cpu.getFlag(Core::Flag::carry));
+    
+}
+
 - (void) testShiftAndRotate {
     /* ASL */
     cpu.runProgram("a9 01 0a 00");
@@ -574,6 +593,20 @@ Core cpu;
      */
     cpu.runProgram("a9 34 8d f0 01 a9 12 8d f1 01 6c f0 01 00");
     XCTAssert(cpu.PC = 1235);
+    
+    /* JMP Indirect wrapping behavior
+     Address  Hexdump   Dissassembly
+     -------------------------------
+     $0600    a9 00     LDA #$00
+     $0602    8d ff 02  STA $02ff
+     $0605    a9 03     LDA #$03
+     $0607    8d 00 02  STA $0200
+     $060a    a9 04     LDA #$04
+     $060c    8d 00 03  STA $0300
+     $060f    6c ff 02  JMP ($02ff)
+    */
+    cpu.runProgram("a9 00 8d ff 02 a9 03 8d 00 02 a9 04 8d 00 03 6c ff 02 00");
+    XCTAssert(cpu.PC = 769); //0x0301, not 0x0401
     
 }
 

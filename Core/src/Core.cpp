@@ -6,6 +6,8 @@
 //  Copyright © 2019 James Hovet. All rights reserved.
 //
 
+#define CUSTOM_DEBUG
+
 #include "Core.hpp"
 const int cycleCounts[0x100] = {
     7,6,0,0,0,3,5,0,3,2,2,0,0,0,6,0,2,5,0,0,0,4,6,0,2,4,0,0,0,4,7,0,6,6,0,0,3,3,5,0,4,2,2,0,4,4,6,0,2,5,0,0,0,4,6,0,2,4,0,0,0,4,7,0,6,6,0,0,0,3,5,0,3,2,2,0,3,4,6,0,2,5,0,0,0,4,6,0,2,4,0,0,0,4,7,0,6,6,0,0,0,3,5,0,4,2,2,0,5,4,6,0,2,5,0,0,0,4,6,0,2,4,0,0,0,4,7,0,0,6,0,0,3,3,3,0,2,0,2,0,4,4,4,0,2,6,0,0,4,4,4,0,2,5,2,0,0,5,0,0,2,6,2,0,3,3,3,0,2,2,2,0,4,4,4,0,2,5,0,0,4,4,4,0,2,4,2,0,4,4,4,0,2,6,0,0,3,3,5,0,2,2,2,0,4,4,6,0,2,5,0,0,0,4,6,0,2,4,0,0,0,4,7,0,2,6,0,0,3,3,5,0,2,2,2,0,4,4,6,0,2,5,0,0,0,4,6,0,2,4,0,0,0,4,7,0
@@ -59,6 +61,13 @@ static int printable(char byte){
     return (((unsigned short)byte)&0xff);
 }
 
+inline static unsigned short promoteUnsigned(char byte){
+    return (((unsigned short)byte)&0xff);
+}
+
+inline static signed short promoteSigned(char byte){
+    return (((signed short)byte));
+}
 
 void Core::loadIntoMemory(char* bytes, unsigned short address, unsigned short length){
     memcpy(&M[address], bytes, length);
@@ -95,8 +104,10 @@ int Core::step(){
     
     //debug
     char* stack;
+    
+#ifdef CUSTOM_DEBUG
     std::cout << prepend;
-    printf("$%4x\top: 0x%2x\tm: 0x%x\t",
+    printf("$%4x:%02x\tm: 0x%x\t",
            PC - 1,
            printable(op),
            mode);
@@ -115,8 +126,7 @@ int Core::step(){
     }
     
     std::cout << std::endl;
-    
-    
+#endif
     
     /* LDA */
     switch (op) {
@@ -170,6 +180,7 @@ int Core::step(){
         case '\x86':
         case '\x96':
         case '\x8e':
+            printf("possible error %02x on PC:%04x\n", X, PC);
             storeRegister(mode, X);
             return 0;
             break;
@@ -191,6 +202,7 @@ int Core::step(){
             /* PLA */
         case '\x68':
             pull(&A);
+            setArithmaticFlags(A);
             return 0;
             break;
             
@@ -211,9 +223,11 @@ int Core::step(){
             SP = (unsigned char)X;
             return 0;
             break;
+            
             /* TSX */
         case '\xba':
             X = (signed char)SP;
+            setArithmaticFlags(X);
             return 0;
             break;
             
@@ -441,13 +455,13 @@ int Core::step(){
             
             /* BVC */
         case '\x50':
-            branchConditional(mode, !getFlag(Flag::carry));
+            branchConditional(mode, !getFlag(Flag::overflow));
             return 0;
             break;
             
             /* BVS */
         case '\x70':
-            branchConditional(mode, getFlag(Flag::carry));
+            branchConditional(mode, getFlag(Flag::overflow));
             return 0;
             break;
             
@@ -549,7 +563,16 @@ int Core::step(){
             std::cout << prepend << "RTS" << std::endl;
             prepend.pop_back();
             jump(pullAddress() + 1);
+            std::cout << prepend;
             printf("jumping to 0x%4x\n", PC);
+            return 0;
+            break;
+            
+            /* RTI */
+        case '\x40':
+            pull(&flags);
+            jump(pullAddress());
+            std::cout << prepend << "RTI" << std::endl;
             return 0;
             break;
             
@@ -569,7 +592,7 @@ int Core::step(){
 // Abstrations
 
 unsigned short Core::getAddress(AddressMode mode){
-    short address = PC + 1;
+    unsigned short address = PC + 1;
     switch (mode) {
         case AddressMode::immediete:
             return PC++;
@@ -597,8 +620,7 @@ unsigned short Core::getAddress(AddressMode mode){
             break;
         case AddressMode::indirect:
             address = (unsigned char)M[PC] + (((unsigned char)M[PC + 1]) << 8);
-//            address = (M[address] << 8) + M[address + 1];
-            address = M[address] + (M[address + 1] << 8);
+            address = M[address] + (M[((address + 1 )& 0xff) + ((address >> 8) << 8)] << 8);
             PC +=2;
             break;
         case AddressMode::indexedIndirect:
@@ -624,7 +646,7 @@ unsigned short Core::getAddress(AddressMode mode, bool shouldCheckPageOverflow){
     if(shouldCheckPageOverflow &&
        (mode == absoluteX || mode == absoluteY || mode == indirectIndexed)
        ){
-        std::cout << "checking extra cycle\tmode: " << mode;
+//        std::cout << "checking extra cycle\tmode: " << mode;
         unsigned short a1 = 0;
         unsigned short a2 = 0;
         if(mode == absoluteX){
@@ -642,7 +664,7 @@ unsigned short Core::getAddress(AddressMode mode, bool shouldCheckPageOverflow){
             PC++;
         }
         handleCheckPageOverflow(a1, a2);
-        std::cout << std::endl;
+//        std::cout << std::endl;
         return a2;
     } else {
         return getAddress(mode);
@@ -666,24 +688,36 @@ void Core::decrement(char* byte){
 }
 
 void Core::addWithCarry(char M){
-    char _A = A;
-    unsigned short tmp = A + M + getFlag(Flag::carry);
+    unsigned short A_u = promoteUnsigned(A);
+    unsigned short M_u = promoteUnsigned(M);
+    unsigned short tmp = A_u + M_u + getFlag(Flag::carry);
     setFlag(Flag::carry, tmp >= 0x100);  // set if value overflow
     A = static_cast<signed char>(tmp);
-    setFlag(Flag::overflow, ((signed char)_A + (signed char)M > 127) ||
-                             ((signed char)_A + (signed char)M < -128));
+    setFlag(Flag::overflow, ((signed char)A_u + (signed char)M > 127) ||
+                             ((signed char)A_u + (signed char)M < -128));
     setArithmaticFlags(A);
 }
 
 void Core::subWithCarry(char M){
-    char _A = A;
-    unsigned short tmp = A - M - (1 - getFlag(Flag::carry));
+    unsigned short A_u = promoteUnsigned(A);
+    unsigned short M_u = promoteUnsigned(M);
+    unsigned short tmp = A_u - M_u - (1 - getFlag(Flag::carry));
     setFlag(Flag::carry, tmp < 0x100); // clear if value overflow
     A = static_cast<signed char>(tmp);
-    setFlag(Flag::overflow, ((signed char)_A - (signed char)M > 127) ||
-                             ((signed char)_A - (signed char)M < -128));
+    setFlag(Flag::overflow, ((signed char)A_u - (signed char)M > 127) ||
+            ((signed char)A_u - (signed char)M < -128));
     setArithmaticFlags(A);
 }
+//
+//void Core::subWithCarry(char M){
+//    char _A = A;
+//    unsigned short tmp = A - M - (1 - getFlag(Flag::carry));
+//    setFlag(Flag::carry, tmp < 0x100); // clear if value overflow
+//    A = static_cast<signed char>(tmp);
+//    setFlag(Flag::overflow, ((signed char)_A - (signed char)M > 127) ||
+//                             ((signed char)_A - (signed char)M < -128));
+//    setArithmaticFlags(A);
+//}
 
 void Core::shiftLeft(char *byte){
     setFlag(Flag::carry, (*byte & NEGATIVE_FLAG) == NEGATIVE_FLAG); // carry <- old bit 7
@@ -750,7 +784,9 @@ void Core::rotateRight(AddressMode mode){
 
 void Core::compare(char byte, char reg){
     setArithmaticFlags(reg - byte);
-    setFlag(Flag::carry, reg >= byte);
+    signed short reg_u = promoteUnsigned(reg);
+    signed short byte_u = promoteUnsigned(byte);
+    setFlag(Flag::carry, reg_u>= byte_u);
 }
 
 void Core::bit(char M){

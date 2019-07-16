@@ -30,8 +30,16 @@ class Memory {
 private:
     char Mem[0x10000];
 public:
-    char operator[](unsigned short address) const {return Mem[address];}
-    char & operator[](unsigned short address) {return Mem[address];}
+    inline char operator[](unsigned short address) const {
+        return Mem[address];
+    }
+    inline char & operator[](unsigned short address) {
+//        if(address == 0){
+//            address += 0;
+//        }
+        return Mem[address];
+    }
+    char* m0 = &Mem[0];
 };
 
 class Core{
@@ -126,7 +134,7 @@ private:
     void inline handleCheckPageOverflow(unsigned short a1, unsigned short a2){
         if(checkPageOverflow(a1, a2)){
             clock += 1;
-            std::cout << "\t+1";
+//            std::cout << "\t+1";
         };
     }
     void debugPrintCPU();

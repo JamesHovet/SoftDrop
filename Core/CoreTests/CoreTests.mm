@@ -85,18 +85,35 @@ Core cpu;
     /* LDA Indexed Indirect
      Address  Hexdump   Dissassembly
      -------------------------------
-     $0600    a2 01     LDX #$01    2
-     $0602    a9 05     LDA #$05    2
-     $0604    85 01     STA $01     3
-     $0606    a9 02     LDA #$02    2
-     $0608    85 02     STA $02     3
-     $060a    a9 55     LDA #$55    2
-     $060c    8d 05 02  STA $0205   4
-     $060f    a1 00     LDA ($00,X) 6
+     $0600    a2 01     LDX #$01
+     $0602    a9 05     LDA #$05
+     $0604    85 01     STA $01
+     $0606    a9 02     LDA #$02
+     $0608    85 02     STA $02
+     $060a    a9 55     LDA #$55
+     $060c    8d 05 02  STA $0205
+     $060f    a9 ff     LDA #$ff
+     $0611    a1 00     LDA ($00,X)
      */
-    cpu.runProgram("a2 01 a9 05 85 01 a9 02 85 02 a9 55 8d 05 02 a1 00 00");
+    cpu.runProgram("a2 01 a9 05 85 01 a9 02 85 02 a9 55 8d 05 02 a9 ff a1 00 00");
     XCTAssert(cpu.A == '\x55');
     // XCTAssert(cpu.clock == 25);
+    
+    /* LDA Indexed Indirect pt. 2
+     Address  Hexdump   Dissassembly
+     -------------------------------
+     $0600    a9 55     LDA #$55
+     $0602    8d 01 02  STA $0201
+     $0605    a9 01     LDA #$01
+     $0607    85 80     STA $80
+     $0609    a9 02     LDA #$02
+     $060b    85 81     STA $81
+     $060d    a2 00     LDX #$00
+     $060f    a1 80     LDA ($80,X)
+    */
+    
+    cpu.runProgram("a9 55 8d 01 02 a9 01 85 80 a9 02 85 81 a2 00 a1 80 00");
+    XCTAssert(cpu.A == '\x55');
     
     /* LDA Indirect Indexed
      Address  Hexdump   Dissassembly

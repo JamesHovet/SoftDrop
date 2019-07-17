@@ -77,12 +77,10 @@ private:
     unsigned char SP = STACK_TOP;
     char flags = DEFAULT_FLAGS;//NV-BDIZC; the 3rd most significant bit is always 1
     unsigned short PC;
-    unsigned long clock;
+    unsigned long clock = 7;
+//    unsigned long clock;
     
     Memory M;
-    
-    // debug
-    std::string prepend;
     
     // Abstractions
     unsigned short getAddress(AddressMode mode);
@@ -124,19 +122,21 @@ private:
     void pull(char* dest){*dest = M[PAGE_ONE + ++SP];}
     unsigned short pullAddress();
     
+    
     // Utils
     void setFlag(Flag flag, bool val);
     void setArithmaticFlags(char byte);
     AddressMode getAddressMode(char opcode);
-    bool checkPageOverflow(unsigned short a1, unsigned short a2){
+    inline bool checkPageOverflow(unsigned short a1, unsigned short a2){
         return (a1 / 0x100) != (a2 / 0x100);
     }
-    void inline handleCheckPageOverflow(unsigned short a1, unsigned short a2){
+    inline void handleCheckPageOverflow(unsigned short a1, unsigned short a2){
         if(checkPageOverflow(a1, a2)){
             clock += 1;
 //            std::cout << "\t+1";
         };
     }
+    unsigned short getIndirectWithWrapping(unsigned short address);
     void debugPrintCPU();
 
     
@@ -160,9 +160,8 @@ public:
         X = 0;
         Y = 0;
         SP = STACK_TOP;
-        prepend = ""; //debug
         while(step() == 0);
-        printf("clock: %d\n\n", clock);
+        printf("clock: %lu\n\n", clock);
     }
     bool getFlag(Flag flag){return (flags & flag) == flag;}
     

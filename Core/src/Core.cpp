@@ -10,7 +10,7 @@
 
 #include "Core.hpp"
 const int cycleCounts[0x100] = {
-    7,6,0,0,0,3,5,0,3,2,2,0,0,0,6,0,2,5,0,0,0,4,6,0,2,4,0,0,0,4,7,0,6,6,0,0,3,3,5,0,4,2,2,0,4,4,6,0,2,5,0,0,0,4,6,0,2,4,0,0,0,4,7,0,6,6,0,0,0,3,5,0,3,2,2,0,3,4,6,0,2,5,0,0,0,4,6,0,2,4,0,0,0,4,7,0,6,6,0,0,0,3,5,0,4,2,2,0,5,4,6,0,2,5,0,0,0,4,6,0,2,4,0,0,0,4,7,0,0,6,0,0,3,3,3,0,2,0,2,0,4,4,4,0,2,6,0,0,4,4,4,0,2,5,2,0,0,5,0,0,2,6,2,0,3,3,3,0,2,2,2,0,4,4,4,0,2,5,0,0,4,4,4,0,2,4,2,0,4,4,4,0,2,6,0,0,3,3,5,0,2,2,2,0,4,4,6,0,2,5,0,0,0,4,6,0,2,4,0,0,0,4,7,0,2,6,0,0,3,3,5,0,2,2,2,0,4,4,6,0,2,5,0,0,0,4,6,0,2,4,0,0,0,4,7,0
+    7,6,0,0,0,3,5,0,3,2,2,0,0,4,6,0,2,5,0,0,0,4,6,0,2,4,0,0,0,4,7,0,6,6,0,0,3,3,5,0,4,2,2,0,4,4,6,0,2,5,0,0,0,4,6,0,2,4,0,0,0,4,7,0,6,6,0,0,0,3,5,0,3,2,2,0,3,4,6,0,2,5,0,0,0,4,6,0,2,4,0,0,0,4,7,0,6,6,0,0,0,3,5,0,4,2,2,0,5,4,6,0,2,5,0,0,0,4,6,0,2,4,0,0,0,4,7,0,0,6,0,0,3,3,3,0,2,0,2,0,4,4,4,0,2,6,0,0,4,4,4,0,2,5,2,0,0,5,0,0,2,6,2,0,3,3,3,0,2,2,2,0,4,4,4,0,2,5,0,0,4,4,4,0,2,4,2,0,4,4,4,0,2,6,0,0,3,3,5,0,2,2,2,0,4,4,6,0,2,5,0,0,0,4,6,0,2,4,0,0,0,4,7,0,2,6,0,0,3,3,5,0,2,2,2,0,4,4,6,0,2,5,0,0,0,4,6,0,2,4,0,0,0,4,7,0
     
 };
 const Core::AddressMode addressModeMap[0x20] = {
@@ -57,7 +57,7 @@ const int debugOpBytes[] = {
     1,2,0,0,0,2,2,0,1,2,1,0,0,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,3,2,0,0,2,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,1,2,0,0,0,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,1,2,0,0,0,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,0,2,0,0,2,2,2,0,1,0,1,0,3,3,3,0,2,2,0,0,2,2,2,0,0,3,1,0,0,3,0,0,2,2,2,0,2,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,2,2,2,0,1,3,1,0,3,3,3,0,2,2,0,0,2,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,2,2,0,0,2,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0
 };
 
-static int printable(char byte){
+inline static int printable(char byte){
     return (((unsigned short)byte)&0xff);
 }
 
@@ -99,19 +99,15 @@ int Core::step(){
     
     char op = M[PC++];
     unsigned char op_u = (unsigned char)op;
-    clock += cycleCounts[op_u];
     AddressMode mode = getAddressMode(op);
     
     //debug
     char* stack;
     
 #ifdef CUSTOM_DEBUG
-    std::cout << prepend;
-    printf("$%4x:%02x\tm: 0x%x\t",
-           PC - 1,
-           printable(op),
-           mode);
     
+    printf("$%04x:%02x", PC - 1, printable(op));
+    printf("\t");
     printf("A:%2x\tX:%2x\tY:%2x\tSP:%2x\tf:%2x\t",
            printable(A),
            printable(X),
@@ -125,8 +121,12 @@ int Core::step(){
         std::cout << " " << std::hex << printable(M[PC + i]);
     }
     
+    printf("\tCYC:%lu", clock);
+    
     std::cout << std::endl;
 #endif
+    
+    clock += cycleCounts[op_u];
     
     /* LDA */
     switch (op) {
@@ -180,7 +180,7 @@ int Core::step(){
         case '\x86':
         case '\x96':
         case '\x8e':
-            printf("possible error %02x on PC:%04x\n", X, PC);
+//            printf("possible error %02x on PC:%04x\n", X, PC);
             storeRegister(mode, X);
             return 0;
             break;
@@ -549,8 +549,6 @@ int Core::step(){
             
             /* JSR */
         case '\x20':
-            std::cout << prepend << "JSR" << std::endl;
-            prepend.append(".");
             push((unsigned char)((PC + 1) >> 8));
             push((unsigned char)((PC + 1) & 0xff));
             jump(getAddress(mode));
@@ -560,11 +558,7 @@ int Core::step(){
             /* RTS */
         case '\x60':
             stack = &M[0x100];
-            std::cout << prepend << "RTS" << std::endl;
-            prepend.pop_back();
             jump(pullAddress() + 1);
-            std::cout << prepend;
-            printf("jumping to 0x%4x\n", PC);
             return 0;
             break;
             
@@ -572,7 +566,6 @@ int Core::step(){
         case '\x40':
             pull(&flags);
             jump(pullAddress());
-            std::cout << prepend << "RTI" << std::endl;
             return 0;
             break;
             
@@ -582,7 +575,7 @@ int Core::step(){
             break;
         
         default:
-            std::cout << "Invalid opcode: " << std::hex << (((unsigned short)op) & 0x00ff) << std::endl;
+//            std::cout << "Invalid opcode: " << std::hex << (((unsigned short)op) & 0x00ff) << std::endl;
             break;
     }
     return 0;
@@ -599,40 +592,36 @@ unsigned short Core::getAddress(AddressMode mode){
         case AddressMode::offset:
             return PC++;
         case AddressMode::zeroPage:
-            return M[PC++];
+            return promoteUnsigned(M[PC++]);
         case AddressMode::zeroPageX:
-            return M[PC++] + (unsigned char)X;
+            return (promoteUnsigned(M[PC++]) + promoteUnsigned(X)) % 0x100;
         case AddressMode::zeroPageY:
-            return M[PC++] + (unsigned char)Y;
+            return (promoteUnsigned(M[PC++]) + promoteUnsigned(Y)) % 0x100;
         case AddressMode::absolute:
-            address = (unsigned char)M[PC] + (((unsigned char)M[PC + 1]) << 8);
+            address = promoteUnsigned(M[PC]) + (promoteUnsigned(M[PC + 1]) << 8);
             PC += 2;
             return address; // return early to avoid triggering the page boundary code below
         case AddressMode::absoluteX:
-            address = (unsigned char)M[PC] + (((unsigned char)M[PC + 1]) << 8);
-            address += X;
+            address = promoteUnsigned(M[PC]) + (promoteUnsigned(M[PC + 1]) << 8);
+            address += promoteUnsigned(X);
             PC += 2;
             break;
         case AddressMode::absoluteY:
-            address = (unsigned char)M[PC] + (((unsigned char)M[PC + 1]) << 8);
-            address += Y;
+            address = promoteUnsigned(M[PC]) + (promoteUnsigned(M[PC + 1]) << 8);
+            address += promoteUnsigned(Y);
             PC += 2;
             break;
         case AddressMode::indirect:
-            address = (unsigned char)M[PC] + (((unsigned char)M[PC + 1]) << 8);
-            address = M[address] + (M[((address + 1 )& 0xff) + ((address >> 8) << 8)] << 8);
+            address = promoteUnsigned(M[PC]) + (promoteUnsigned(M[PC + 1]) << 8);
+            address = getIndirectWithWrapping(address);
             PC +=2;
             break;
         case AddressMode::indexedIndirect:
-            address = (unsigned char)M[(unsigned char)(M[PC] + X)] +
-                      ((unsigned char)M[(unsigned char)(M[PC] + X) + 1] << 8);
+            address = getIndirectWithWrapping(promoteUnsigned(M[PC]) + X);
             PC++;
             break;
         case AddressMode::indirectIndexed:
-//            address = M[M[PC++]] + Y;
-            address = (unsigned char)M[(unsigned char)M[PC]] +
-                      ((unsigned char)M[(unsigned char)(M[PC]) + 1] << 8) +
-                      Y;
+            address = getIndirectWithWrapping(promoteUnsigned(M[PC])) + promoteUnsigned(Y);
             PC++;
             break;
         default:
@@ -646,25 +635,22 @@ unsigned short Core::getAddress(AddressMode mode, bool shouldCheckPageOverflow){
     if(shouldCheckPageOverflow &&
        (mode == absoluteX || mode == absoluteY || mode == indirectIndexed)
        ){
-//        std::cout << "checking extra cycle\tmode: " << mode;
         unsigned short a1 = 0;
         unsigned short a2 = 0;
         if(mode == absoluteX){
-            a1 = (unsigned char)M[PC] + (((unsigned char)M[PC + 1]) << 8);
-            a2 = a1 + X;
+            a1 = promoteUnsigned(M[PC]) + (promoteUnsigned(M[PC + 1]) << 8);
+            a2 = a1 + promoteUnsigned(X);
             PC += 2;
         } else if (mode == absoluteY){
-            a1 = (unsigned char)M[PC] + (((unsigned char)M[PC + 1]) << 8);
-            a2 = a1 + Y;
+            a1 = promoteUnsigned(M[PC]) + (promoteUnsigned(M[PC + 1]) << 8);
+            a2 = a1 + promoteUnsigned(Y);
             PC += 2;
         } else if (mode == indirectIndexed){
-            a1 = (unsigned char)M[(unsigned char)M[PC]] +
-            ((unsigned char)M[(unsigned char)(M[PC]) + 1] << 8);
-            a2 = a1 + Y;
+            a1 = getIndirectWithWrapping(promoteUnsigned(M[PC]));
+            a2 = a1 + promoteUnsigned(Y);
             PC++;
         }
         handleCheckPageOverflow(a1, a2);
-//        std::cout << std::endl;
         return a2;
     } else {
         return getAddress(mode);
@@ -708,16 +694,6 @@ void Core::subWithCarry(char M){
             ((signed char)A_u - (signed char)M < -128));
     setArithmaticFlags(A);
 }
-//
-//void Core::subWithCarry(char M){
-//    char _A = A;
-//    unsigned short tmp = A - M - (1 - getFlag(Flag::carry));
-//    setFlag(Flag::carry, tmp < 0x100); // clear if value overflow
-//    A = static_cast<signed char>(tmp);
-//    setFlag(Flag::overflow, ((signed char)_A - (signed char)M > 127) ||
-//                             ((signed char)_A - (signed char)M < -128));
-//    setArithmaticFlags(A);
-//}
 
 void Core::shiftLeft(char *byte){
     setFlag(Flag::carry, (*byte & NEGATIVE_FLAG) == NEGATIVE_FLAG); // carry <- old bit 7
@@ -797,7 +773,6 @@ void Core::bit(char M){
 
 void Core::branch(AddressMode mode){
     signed char offset = getByte(mode, true);
-//    std::cout << "offset: " << std::dec << (int)offset << std::endl;
     clock ++;
     jump(PC + offset);
 }
@@ -817,10 +792,6 @@ unsigned short Core::pullAddress(){
     pull(&high);
     return ((unsigned short)(high) << 8) + (unsigned char)low;
 }
-
-//void Core::push(char byte){
-//    M[PAGE_ONE + SP--] = byte;
-//}
 
 // Utils
 
@@ -895,6 +866,10 @@ Core::AddressMode Core::getAddressMode(char opcode){
     return implicit;
 }
 
+inline unsigned short Core::getIndirectWithWrapping(unsigned short address){
+    return promoteUnsigned(M[address]) + (M[((address + 1 )& 0xff) + ((address >> 8) << 8)] << 8);
+}
+
 void Core::debugPrintCPU(){
     printf("A:%2x\tX:%2x\tY:%2x\tSP:%2x\tf:%2x\n",
            printable(A),
@@ -903,6 +878,3 @@ void Core::debugPrintCPU(){
            printable(SP),
            printable(flags));
 }
-
-//TODO: debug disassembly printing
-//TODO: Zero page wrapping

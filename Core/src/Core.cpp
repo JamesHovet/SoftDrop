@@ -69,8 +69,20 @@ inline static signed short promoteSigned(char byte){
     return (((signed short)byte));
 }
 
+//Core::Core(){
+//    //TODO: Remove
+//}
+
+Core::Core(Mapper* mapper){
+    m = mapper;
+}
+
+Core::~Core(){
+    
+}
+
 void Core::loadIntoMemory(char* bytes, unsigned short address, unsigned short length){
-    memcpy(&M[address], bytes, length);
+    memcpy(m->getPointerAt(address), bytes, length);
 }
 
 void Core::loadIntoMemory(std::string hex_chars, unsigned short address){
@@ -79,7 +91,7 @@ void Core::loadIntoMemory(std::string hex_chars, unsigned short address){
     unsigned int c;
     while (hex_chars_stream >> std::hex >> c)
     {
-        M[address++] = (char) c;
+        m->setByte(address++, (char)c);
     }
 }
 
@@ -97,13 +109,11 @@ int Core::stepTo(unsigned long clockCycle){
 
 int Core::step(){
     
-    char op = M[PC++];
+    char op = m->getByte(PC++);
     unsigned char op_u = (unsigned char)op;
     AddressMode mode = getAddressMode(op);
     
     //debug
-    char* stack;
-    
 #ifdef CUSTOM_DEBUG
     
     printf("$%04x:%02x", PC - 1, printable(op));
@@ -118,7 +128,7 @@ int Core::step(){
     std::cout << debugOpNames[op_u];
     
     for(int i = 0; i < debugOpBytes[op_u] - 1; i++){
-        std::cout << " " << std::hex << printable(M[PC + i]);
+        std::cout << " " << std::hex << printable(m->getByte(PC + i));
     }
     
     printf("\tCYC:%lu", clock);
@@ -557,7 +567,6 @@ int Core::step(){
             
             /* RTS */
         case '\x60':
-            stack = &M[0x100];
             jump(pullAddress() + 1);
             return 0;
             break;
@@ -592,36 +601,36 @@ unsigned short Core::getAddress(AddressMode mode){
         case AddressMode::offset:
             return PC++;
         case AddressMode::zeroPage:
-            return promoteUnsigned(M[PC++]);
+            return promoteUnsigned(m->getByte(PC++));
         case AddressMode::zeroPageX:
-            return (promoteUnsigned(M[PC++]) + promoteUnsigned(X)) % 0x100;
+            return (promoteUnsigned(m->getByte(PC++)) + promoteUnsigned(X)) % 0x100;
         case AddressMode::zeroPageY:
-            return (promoteUnsigned(M[PC++]) + promoteUnsigned(Y)) % 0x100;
+            return (promoteUnsigned(m->getByte(PC++)) + promoteUnsigned(Y)) % 0x100;
         case AddressMode::absolute:
-            address = promoteUnsigned(M[PC]) + (promoteUnsigned(M[PC + 1]) << 8);
+            address = promoteUnsigned(m->getByte(PC)) + (promoteUnsigned(m->getByte(PC + 1)) << 8);
             PC += 2;
             return address; // return early to avoid triggering the page boundary code below
         case AddressMode::absoluteX:
-            address = promoteUnsigned(M[PC]) + (promoteUnsigned(M[PC + 1]) << 8);
+            address = promoteUnsigned(m->getByte(PC)) + (promoteUnsigned(m->getByte(PC + 1)) << 8);
             address += promoteUnsigned(X);
             PC += 2;
             break;
         case AddressMode::absoluteY:
-            address = promoteUnsigned(M[PC]) + (promoteUnsigned(M[PC + 1]) << 8);
+            address = promoteUnsigned(m->getByte(PC)) + (promoteUnsigned(m->getByte(PC + 1)) << 8);
             address += promoteUnsigned(Y);
             PC += 2;
             break;
         case AddressMode::indirect:
-            address = promoteUnsigned(M[PC]) + (promoteUnsigned(M[PC + 1]) << 8);
+            address = promoteUnsigned(m->getByte(PC)) + (promoteUnsigned(m->getByte(PC + 1)) << 8);
             address = getIndirectWithWrapping(address);
             PC +=2;
             break;
         case AddressMode::indexedIndirect:
-            address = getIndirectWithWrapping(promoteUnsigned(M[PC]) + X);
+            address = getIndirectWithWrapping(promoteUnsigned(m->getByte(PC)) + X);
             PC++;
             break;
         case AddressMode::indirectIndexed:
-            address = getIndirectWithWrapping(promoteUnsigned(M[PC])) + promoteUnsigned(Y);
+            address = getIndirectWithWrapping(promoteUnsigned(m->getByte(PC))) + promoteUnsigned(Y);
             PC++;
             break;
         default:
@@ -638,15 +647,15 @@ unsigned short Core::getAddress(AddressMode mode, bool shouldCheckPageOverflow){
         unsigned short a1 = 0;
         unsigned short a2 = 0;
         if(mode == absoluteX){
-            a1 = promoteUnsigned(M[PC]) + (promoteUnsigned(M[PC + 1]) << 8);
+            a1 = promoteUnsigned(m->getByte(PC)) + (promoteUnsigned(m->getByte(PC + 1)) << 8);
             a2 = a1 + promoteUnsigned(X);
             PC += 2;
         } else if (mode == absoluteY){
-            a1 = promoteUnsigned(M[PC]) + (promoteUnsigned(M[PC + 1]) << 8);
+            a1 = promoteUnsigned(m->getByte(PC)) + (promoteUnsigned(m->getByte(PC + 1)) << 8);
             a2 = a1 + promoteUnsigned(Y);
             PC += 2;
         } else if (mode == indirectIndexed){
-            a1 = getIndirectWithWrapping(promoteUnsigned(M[PC]));
+            a1 = getIndirectWithWrapping(promoteUnsigned(m->getByte(PC)));
             a2 = a1 + promoteUnsigned(Y);
             PC++;
         }
@@ -660,7 +669,7 @@ unsigned short Core::getAddress(AddressMode mode, bool shouldCheckPageOverflow){
 
 void Core::loadRegister(char byte, char* reg){
     *reg = byte;
-    setArithmaticFlags(*reg);
+    setArithmaticFlags(byte);
 }
 
 void Core::increment(char* byte){
@@ -705,7 +714,7 @@ void Core::shiftLeft(AddressMode mode){
     if(mode == acculumlator){
         shiftLeft(&A);
     } else {
-        shiftLeft(&M[getAddress(mode)]);
+        shiftLeft(m->getPointerAt(getAddress(mode)));
     }
 }
 
@@ -720,7 +729,7 @@ void Core::shiftRight(AddressMode mode){
     if(mode == acculumlator){
         shiftRight(&A);
     } else {
-        shiftRight(&M[getAddress(mode)]);
+        shiftRight(m->getPointerAt(getAddress(mode)));
     }
 }
 
@@ -736,7 +745,7 @@ void Core::rotateLeft(AddressMode mode){
     if(mode == acculumlator){
         rotateLeft(&A);
     } else {
-        rotateLeft(&M[getAddress(mode)]);
+        rotateLeft(m->getPointerAt(getAddress(mode)));
     }
 }
 
@@ -753,7 +762,7 @@ void Core::rotateRight(AddressMode mode){
     if(mode == acculumlator){
         rotateRight(&A);
     } else {
-        rotateRight(&M[getAddress(mode)]);
+        rotateRight(m->getPointerAt(getAddress(mode)));
     }
 }
 
@@ -867,7 +876,7 @@ Core::AddressMode Core::getAddressMode(char opcode){
 }
 
 inline unsigned short Core::getIndirectWithWrapping(unsigned short address){
-    return promoteUnsigned(M[address]) + (M[((address + 1 )& 0xff) + ((address >> 8) << 8)] << 8);
+    return promoteUnsigned(m->getByte(address)) + (m->getByte(((address + 1 )& 0xff) + ((address >> 8) << 8)) << 8);
 }
 
 void Core::debugPrintCPU(){

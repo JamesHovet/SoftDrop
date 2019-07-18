@@ -10,7 +10,9 @@
 
 #define private public //EEEEEEEVIL Hack to test against private members
 
-#include "../src/Core.hpp"
+#include "Core/src/Core.hpp"
+#include "Core/src/Mapper.hpp"
+#include "Core/CoreTests/TestingMapper.hpp"
 
 @interface CoreTests : XCTestCase
 
@@ -18,7 +20,16 @@
 
 @implementation CoreTests
 
-Core cpu;
+TestingMapper mapper;
+Core cpu = Core(&mapper);
+
+- (void) testTestingMapper {
+    mapper.setByte(0, '\x55');
+    XCTAssert(mapper.getByte(0) == '\x55');
+    
+    cpu.m->setByte(1, '\x55');
+    XCTAssert(cpu.m->getByte(0));
+}
 
 - (void) testLDA {
     /* LDA Immediete & Zero Flag */
@@ -110,7 +121,7 @@ Core cpu;
      $060b    85 81     STA $81
      $060d    a2 00     LDX #$00
      $060f    a1 80     LDA ($80,X)
-    */
+     */
     
     cpu.runProgram("a9 55 8d 01 02 a9 01 85 80 a9 02 85 81 a2 00 a1 80 00");
     XCTAssert(cpu.A == '\x55');
@@ -197,7 +208,7 @@ Core cpu;
     /*
      Tests every address mode, but not every instruction that has a
      possible boundry cross.
-    */
+     */
     
     /* LDA Absolute,X with page boundary cross
      Address  Hexdump   Dissassembly
@@ -208,7 +219,7 @@ Core cpu;
      $0607    a2 01     LDX #$01         2
      $0609    bd ff 00  LDA $00ff,X      4 + 1
      BRK
-    */
+     */
     cpu.runProgram("a9 55 8d 00 01 a9 00 a2 01 bd ff 00 00");
     XCTAssert(cpu.clock == 22);
     
@@ -228,7 +239,7 @@ Core cpu;
      $060c    8e 01 02  STX $0201     4
      $060f    b1 01     LDA ($01),Y   5 + 1
      BRK                              7
-    */
+     */
     cpu.runProgram("a0 11 a9 f0 85 01 a9 01 85 02 a2 55 8e 01 02 b1 01 00");
     XCTAssert(cpu.clock == 31);
 }
@@ -243,7 +254,7 @@ Core cpu;
      $0606    a5 00     LDA $00     3
      */
     cpu.runProgram("a9 55 85 00 a9 00 a5 00 00");
-    XCTAssert(cpu.M[0] == '\x55');
+    XCTAssert(cpu.m->getByte(0) == '\x55');
     // XCTAssert(cpu.clock == 11);
     
     /* STA Zero Page,X
@@ -254,7 +265,7 @@ Core cpu;
      $0604    95 00     STA $00,X
      */
     cpu.runProgram("a9 55 a2 f0 95 00 00");
-    XCTAssert(cpu.M[0xf0] == '\x55');
+    XCTAssert(cpu.m->getByte(0xf0) == '\x55');
     
     /* STA Absolute
      Address  Hexdump   Dissassembly
@@ -263,7 +274,7 @@ Core cpu;
      $0602    8d 02 01  STA $0102    4
      */
     cpu.runProgram("a9 55 8d 02 01 00");
-    XCTAssert(cpu.M[0x0102] == '\x55');
+    XCTAssert(cpu.m->getByte(0x0102) == '\x55');
     XCTAssert(cpu.clock = 7);
     
     
@@ -280,9 +291,9 @@ Core cpu;
      $0608    8e 02 00  STX $0002   4
      */
     cpu.runProgram("a2 55 86 00 a0 01 96 00 8e 02 00 00");
-    XCTAssert(cpu.M[0] == '\x55');
-    XCTAssert(cpu.M[1] == '\x55');
-    XCTAssert(cpu.M[2] == '\x55');
+    XCTAssert(cpu.m->getByte(0) == '\x55');
+    XCTAssert(cpu.m->getByte(1) == '\x55');
+    XCTAssert(cpu.m->getByte(2) == '\x55');
     // XCTAssert(cpu.clock == 16);
     
 }
@@ -298,9 +309,9 @@ Core cpu;
      $0608    8c 02 00  STY $0002
      */
     cpu.runProgram("a0 55 84 00 a2 01 94 00 8c 02 00 00");
-    XCTAssert(cpu.M[0] == '\x55');
-    XCTAssert(cpu.M[1] == '\x55');
-    XCTAssert(cpu.M[2] == '\x55');
+    XCTAssert(cpu.m->getByte(0) == '\x55');
+    XCTAssert(cpu.m->getByte(1) == '\x55');
+    XCTAssert(cpu.m->getByte(2) == '\x55');
     // XCTAssert(cpu.clock == 16);
     
 }
@@ -313,7 +324,7 @@ Core cpu;
      $0602    48        PHA
      */
     cpu.runProgram("a9 55 48 00");
-    XCTAssert(cpu.M[0x1ff] == '\x55');
+    XCTAssert(cpu.m->getByte(0x1ff) == '\x55');
     XCTAssert(cpu.SP == STACK_TOP - 1);
     
     /* PLA
@@ -363,15 +374,15 @@ Core cpu;
      $0603    a9 44     LDA #$44
      $0605    a9 55     LDA #$55
      $0607    00        BRK
-    */
+     */
     cpu.runProgram(""); // reset registers
     cpu.loadIntoMemory("20 05 06 a9 44 a9 55 00", 0x0600);
     cpu.setPC(0x0600);
     while(cpu.step() == 0);
     XCTAssert(cpu.A == '\x55');
     XCTAssert(cpu.SP == 253);
-    XCTAssert(cpu.M[0x1ff] == '\x06');
-    XCTAssert(cpu.M[0x1fe] == '\x02');
+    XCTAssert(cpu.m->getByte(0x1ff) == '\x06');
+    XCTAssert(cpu.m->getByte(0x1fe) == '\x02');
     
     /* RTS
      Address  Hexdump   Dissassembly
@@ -380,7 +391,7 @@ Core cpu;
      $0603    a9 55     LDA #$55
      $0605    00        BRK
      $0606    60        RTS
-    */
+     */
     cpu.runProgram(""); // reset registers
     cpu.loadIntoMemory("20 06 06 a9 55 00 60 00", 0x0600);
     cpu.setPC(0x0600);
@@ -400,7 +411,7 @@ Core cpu;
      $0606    a9 03     LDA #$03
      $0608    48        PHA
      $0609    40        RTI
-    */
+     */
     cpu.runProgram("a9 02 48 a9 04 48 a9 03 48 40 00");
     XCTAssert(cpu.PC == 0x205); //0x0205
     XCTAssert(cpu.getFlag(Core::Flag::zero));
@@ -621,7 +632,7 @@ Core cpu;
      $060a    a9 04     LDA #$04
      $060c    8d 00 03  STA $0300
      $060f    6c ff 02  JMP ($02ff)
-    */
+     */
     cpu.runProgram("a9 00 8d ff 02 a9 03 8d 00 02 a9 04 8d 00 03 6c ff 02 00");
     XCTAssert(cpu.PC = 769); //0x0301, not 0x0401
     

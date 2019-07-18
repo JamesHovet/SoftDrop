@@ -20,7 +20,7 @@
 using namespace std;
 
 int runNestest();
-//int run_instr_test_v5();
+int run_instr_test_v5();
 static void hexDump(Core &cpu, unsigned short start, unsigned short end);
 static int printable(char byte){return (((unsigned short)byte)&0xff);}
 
@@ -29,7 +29,7 @@ int main(int argc, const char * argv[]) {
     
     auto ret = runNestest();
 //    auto ret = run_instr_test_v5();
-    
+
     return ret;
     
 //    return 0;
@@ -39,10 +39,10 @@ static void hexDump(Core &cpu, unsigned short start, unsigned short end) {
     for(int i = start; i < end; i+=0x10){
         printf("$%04x: ", i);
         for(int j = 0; j < 0x10; j++){
-            printf("%02x ", printable(cpu.m->getByte(i + j)));
+            printf("%02x ", printable(cpu.m.getByte(i + j)));
         }
         for(int j = 0; j < 0x10; j++){
-            char c = cpu.m->getByte(i + j);
+            char c = cpu.m.getByte(i + j);
             if(c > 31 && c < 127){
                 std::cout << c;
             } else {
@@ -67,23 +67,15 @@ int run_instr_test_v5() {
     file.close();
     
     
-    Core cpu = Core(&map);
+    Core cpu = Core(map);
     cpu.setPC(0xea71);
 
 
 //    hexDump(cpu, 0xc000, 0xd000);
 
-    char* output = cpu.m->getPointerAt(0x6000);
-
-    *(output + 0) = 0;
-    *(output + 1) = 0;
-    *(output + 2) = 0;
-    *(output + 3) = 0;
-    *(output + 4) = 0;
-
     long instructionCount = 0;
     while(cpu.step() == 0){
-        if(instructionCount % 100000 == 0){
+        if(instructionCount % 0x10000 == 0){
             std::cout << "------" << instructionCount << "------" << std::endl;
             hexDump(cpu, 0x6000, 0x6100);
             instructionCount += 0;
@@ -107,10 +99,9 @@ int runNestest(){
     }
     map.readINES(file);
     
-    Core cpu = Core(&map);
-    cpu.setPC(0xc000);
-    
-    while(cpu.step() == 0);
+    Core cpu = Core(map);
+    cpu.setPC(0xc000); // automatic;
+//    cpu.setPC(0xc004);
     
     return 0;
 }

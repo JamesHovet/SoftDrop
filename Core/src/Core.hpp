@@ -28,24 +28,10 @@
 
 #define TESTING_PRG_OFFSET 0x8000
 
-class Memory {
-private:
-    char Mem[0x10000];
-public:
-    inline char operator[](unsigned short address) const {
-        return Mem[address];
-    }
-    inline char & operator[](unsigned short address) {
-        return Mem[address];
-    }
-    char* m0 = &Mem[0];
-};
-
 class Core{
 public:
-    
-    Core();
-    Core(Mapper* mapper);
+
+    Core(Mapper& mapper);
     ~Core();
     
     enum AddressMode {
@@ -83,26 +69,24 @@ private:
     unsigned short PC;
     unsigned long clock = 7;
 //    unsigned long clock;
-    
-    Memory M;
-    Mapper* m;
+    Mapper& m;
     
     // Abstractions
     unsigned short getAddress(AddressMode mode);
     unsigned short getAddress(AddressMode mode, bool shouldCheckPageOverflow);
-    char inline getByte(AddressMode mode){return m->getByte(getAddress(mode));}
+    char inline getByte(AddressMode mode){return m.getByte(getAddress(mode));}
     char inline getByte(AddressMode mode, bool shouldCheckPageOverflow) {
-        return m->getByte(getAddress(mode, shouldCheckPageOverflow));
+        return m.getByte(getAddress(mode, shouldCheckPageOverflow));
     }
 
     void loadRegister(char byte, char* reg);
     void inline loadRegister(AddressMode mode, char* reg){loadRegister(getByte(mode, true), reg);}
-    void storeRegister(char byte, unsigned short address){m->setByte(address, byte);}
-    void inline storeRegister(AddressMode mode, char byte){m->setByte(getAddress(mode), byte);}
+    void storeRegister(char byte, unsigned short address){m.setByte(address, byte);}
+    void inline storeRegister(AddressMode mode, char byte){m.setByte(getAddress(mode), byte);}
     void increment(char* reg);
-    void inline increment(AddressMode mode){increment(m->getPointerAt(getAddress(mode)));}
+    void inline increment(AddressMode mode){increment(m.getPointerAt(getAddress(mode)));}
     void decrement(char* reg);
-    void inline decrement(AddressMode mode){decrement(m->getPointerAt(getAddress(mode)));}
+    void inline decrement(AddressMode mode){decrement(m.getPointerAt(getAddress(mode)));}
     void addWithCarry(char byte);
     void inline addWithCarry(AddressMode mode){addWithCarry(getByte(mode, true));}
     void subWithCarry(char byte);
@@ -123,8 +107,8 @@ private:
     void inline jump(AddressMode mode){jump(getAddress(mode));}
     void branch(AddressMode mode);
     void branchConditional(AddressMode mode, bool condition);
-    void push(char byte){m->setByte(PAGE_ONE + SP--, byte);}
-    void pull(char* dest){*dest = m->getByte(PAGE_ONE + ++SP);}
+    void push(char byte){m.setByte(PAGE_ONE + SP--, byte);}
+    void pull(char* dest){*dest = m.getByte(PAGE_ONE + ++SP);}
     unsigned short pullAddress();
     
     

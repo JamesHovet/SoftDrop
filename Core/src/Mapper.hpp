@@ -12,6 +12,9 @@
 #include <fstream>
 
 class Mapper {
+private:
+    char APUIO[0x20];
+    char PPU[0x8];
 public:
     
     Mapper(){}
@@ -19,9 +22,9 @@ public:
     
     virtual int readINES(std::ifstream &openFile) = 0;
     
-    virtual void setByte(unsigned short address, char byte) = 0;
-    virtual char getByte(unsigned short address) = 0;
-    virtual char* getPointerAt(unsigned short address) = 0;
+    virtual void setByte(unsigned short address, char byte);
+    virtual char getByte(unsigned short address);
+    virtual char* getPointerAt(unsigned short address);
 };
 
 #endif /* Mapper_h */

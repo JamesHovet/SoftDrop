@@ -21,14 +21,14 @@
 @implementation CoreTests
 
 TestingMapper mapper;
-Core cpu = Core(&mapper);
+Core cpu = Core(mapper);
 
 - (void) testTestingMapper {
     mapper.setByte(0, '\x55');
     XCTAssert(mapper.getByte(0) == '\x55');
     
-    cpu.m->setByte(1, '\x55');
-    XCTAssert(cpu.m->getByte(0));
+    cpu.m.setByte(1, '\x55');
+    XCTAssert(cpu.m.getByte(0));
 }
 
 - (void) testLDA {
@@ -254,7 +254,7 @@ Core cpu = Core(&mapper);
      $0606    a5 00     LDA $00     3
      */
     cpu.runProgram("a9 55 85 00 a9 00 a5 00 00");
-    XCTAssert(cpu.m->getByte(0) == '\x55');
+    XCTAssert(cpu.m.getByte(0) == '\x55');
     // XCTAssert(cpu.clock == 11);
     
     /* STA Zero Page,X
@@ -265,7 +265,7 @@ Core cpu = Core(&mapper);
      $0604    95 00     STA $00,X
      */
     cpu.runProgram("a9 55 a2 f0 95 00 00");
-    XCTAssert(cpu.m->getByte(0xf0) == '\x55');
+    XCTAssert(cpu.m.getByte(0xf0) == '\x55');
     
     /* STA Absolute
      Address  Hexdump   Dissassembly
@@ -274,7 +274,7 @@ Core cpu = Core(&mapper);
      $0602    8d 02 01  STA $0102    4
      */
     cpu.runProgram("a9 55 8d 02 01 00");
-    XCTAssert(cpu.m->getByte(0x0102) == '\x55');
+    XCTAssert(cpu.m.getByte(0x0102) == '\x55');
     XCTAssert(cpu.clock = 7);
     
     
@@ -291,9 +291,9 @@ Core cpu = Core(&mapper);
      $0608    8e 02 00  STX $0002   4
      */
     cpu.runProgram("a2 55 86 00 a0 01 96 00 8e 02 00 00");
-    XCTAssert(cpu.m->getByte(0) == '\x55');
-    XCTAssert(cpu.m->getByte(1) == '\x55');
-    XCTAssert(cpu.m->getByte(2) == '\x55');
+    XCTAssert(cpu.m.getByte(0) == '\x55');
+    XCTAssert(cpu.m.getByte(1) == '\x55');
+    XCTAssert(cpu.m.getByte(2) == '\x55');
     // XCTAssert(cpu.clock == 16);
     
 }
@@ -309,9 +309,9 @@ Core cpu = Core(&mapper);
      $0608    8c 02 00  STY $0002
      */
     cpu.runProgram("a0 55 84 00 a2 01 94 00 8c 02 00 00");
-    XCTAssert(cpu.m->getByte(0) == '\x55');
-    XCTAssert(cpu.m->getByte(1) == '\x55');
-    XCTAssert(cpu.m->getByte(2) == '\x55');
+    XCTAssert(cpu.m.getByte(0) == '\x55');
+    XCTAssert(cpu.m.getByte(1) == '\x55');
+    XCTAssert(cpu.m.getByte(2) == '\x55');
     // XCTAssert(cpu.clock == 16);
     
 }
@@ -324,7 +324,7 @@ Core cpu = Core(&mapper);
      $0602    48        PHA
      */
     cpu.runProgram("a9 55 48 00");
-    XCTAssert(cpu.m->getByte(0x1ff) == '\x55');
+    XCTAssert(cpu.m.getByte(0x1ff) == '\x55');
     XCTAssert(cpu.SP == STACK_TOP - 1);
     
     /* PLA
@@ -381,8 +381,8 @@ Core cpu = Core(&mapper);
     while(cpu.step() == 0);
     XCTAssert(cpu.A == '\x55');
     XCTAssert(cpu.SP == 253);
-    XCTAssert(cpu.m->getByte(0x1ff) == '\x06');
-    XCTAssert(cpu.m->getByte(0x1fe) == '\x02');
+    XCTAssert(cpu.m.getByte(0x1ff) == '\x06');
+    XCTAssert(cpu.m.getByte(0x1fe) == '\x02');
     
     /* RTS
      Address  Hexdump   Dissassembly

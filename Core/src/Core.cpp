@@ -69,11 +69,9 @@ inline static signed short promoteSigned(char byte){
     return (((signed short)byte));
 }
 
-//Core::Core(){
-//    //TODO: Remove
-//}
-
-Core::Core(Mapper& mapper) : m(mapper) {}
+Core::Core(Mapper& mapper) : m(mapper) {
+    
+}
 
 Core::~Core(){
     

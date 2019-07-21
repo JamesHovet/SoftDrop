@@ -14,7 +14,6 @@ Mapper001::Mapper001(){
 
 Mapper001::~Mapper001(){
     delete[] memory;
-    delete[] header;
     delete[] PRG;
     delete[] CHR;
     delete[] RAM;
@@ -22,7 +21,6 @@ Mapper001::~Mapper001(){
 
 int Mapper001::readINES(std::ifstream &file){
     
-    header = new char[0x10];
     file.seekg(0, std::ios::beg);
     file.read(header, 0x10);
     
@@ -32,6 +30,9 @@ int Mapper001::readINES(std::ifstream &file){
     
     PRG = new char[0x4000 * NumPRGBanks];
     file.read(PRG, 0x4000 * NumPRGBanks);
+    CHR = new char[0x2000 * NumCHRBanks];
+    file.read(CHR, 0x2000 * NumCHRBanks);
+    
     
     //TODO: check if RAM enabled
     RAM = new char[0x2000];
@@ -44,7 +45,7 @@ void Mapper001::setByte(unsigned short address, char byte){
               (address >= 0x2000 && address <0x4000)){
         Mapper::setByte(address, byte);
     } else if(address < 0x2000){
-        memory[address] = byte;
+        Mapper::setByte(address, byte);
     } else if(address >= 0x6000 && address < 0x8000){
         RAM[address - 0x6000] = byte;
     } else if (address >= 0x8000){
@@ -103,7 +104,7 @@ inline char* Mapper001::getPointerAt(unsigned short address){
               (address >= 0x2000 && address <0x4000)){
         return Mapper::getPointerAt(address);
     } else if(address < 0x2000){
-        return &memory[address % 0x8000];
+        return Mapper::getPPUPointerAt(address);
     } else if(address >= 0x6000 && address < 0x8000){
         return &RAM[address - 0x6000];
     } else if(address < 0xC000){
@@ -113,4 +114,23 @@ inline char* Mapper001::getPointerAt(unsigned short address){
         unsigned int offset = address - 0xC000;
         return PRG + offset + (0x4000 * PRG_ROM_C000_Bank);
     }
+}
+
+void Mapper001::setPPU(unsigned short address, char byte){
+    Mapper::setPPU(address, byte);
+}
+
+char Mapper001::getPPU(unsigned short address){
+    return *getPPUPointerAt(address);
+}
+
+char* Mapper001::getPPUPointerAt(unsigned short address){
+    if(address < 0x1000){
+        return &CHR[Register_CHR0 * 0x1000];
+    } else if (address < 0x2000){
+        return &CHR[Register_CHR1 * 0x1000];
+    } else {
+        return Mapper::getPPUPointerAt(address);
+    }
+    return nullptr;
 }

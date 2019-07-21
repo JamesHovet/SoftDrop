@@ -9,7 +9,9 @@
 #include "Mapper.hpp"
 
 void Mapper::setByte(unsigned short address, char byte){
-    if(address >= 0x4000 && address < 0x4020){
+    if(address < 0x2000){
+        RAM[address] = byte;
+    } else if(address >= 0x4000 && address < 0x4020){
         APUIO[address - 0x4000] = byte;
     } else if(address >= 0x2000 && address < 0x4000){
         PPU[address % 0x8] = byte;
@@ -17,7 +19,9 @@ void Mapper::setByte(unsigned short address, char byte){
 }
 
 char Mapper::getByte(unsigned short address){
-    if(address >= 0x4000 && address < 0x4020){
+    if(address < 0x2000){
+        return RAM[address];
+    } else if(address >= 0x4000 && address < 0x4020){
         return APUIO[address - 0x4000];
     } else if(address >= 0x2000 && address < 0x4000){
         char res = PPU[address % 0x8];
@@ -30,10 +34,27 @@ char Mapper::getByte(unsigned short address){
 }
 
 char* Mapper::getPointerAt(unsigned short address){
-    if(address >= 0x4000 && address < 0x4020){
+    if(address < 0x2000){
+        return &RAM[address];
+    }else if(address >= 0x4000 && address < 0x4020){
         return &APUIO[address - 0x4000];
     } else if(address >= 0x2000 && address < 0x4000){
         return &PPU[address % 0x8];
+    }
+    return nullptr;
+}
+
+void Mapper::setPPU(unsigned short address, char byte){
+    if(address >= 0x2000){
+        VRAM[address - 0x2000] = byte;
+    }
+}
+char Mapper::getPPU(unsigned short address){
+    return *getPPUPointerAt(address);
+}
+char* Mapper::getPPUPointerAt(unsigned short address){
+    if(address >= 0x2000){
+        return &VRAM[address - 0x2000];
     }
     return nullptr;
 }

@@ -24,6 +24,10 @@ public:
     void setByte(unsigned short address, char byte);
     char getByte(unsigned short address);
     char* getPointerAt(unsigned short address);
+    
+    void setPPU(unsigned short address, char byte){}
+    char getPPU(unsigned short address){return 0;}
+    char* getPPUPointerAt(unsigned short address){return nullptr;}
 };
 
 #endif /* TestingMapper_hpp */

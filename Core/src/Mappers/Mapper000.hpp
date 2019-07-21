@@ -14,6 +14,7 @@
 class Mapper000 : public Mapper {
 private:
     char* memory;
+    char header[0x10];
     
 public:
     
@@ -25,6 +26,10 @@ public:
     void setByte(unsigned short address, char byte);
     char getByte(unsigned short address);
     char* getPointerAt(unsigned short address);
+    
+    void setPPU(unsigned short address, char byte){}
+    char getPPU(unsigned short address);
+    char* getPPUPointerAt(unsigned short address);
 };
 
 #endif /* Mapper000_hpp */

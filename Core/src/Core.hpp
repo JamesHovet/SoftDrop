@@ -82,7 +82,7 @@ private:
     void loadRegister(char byte, char* reg);
     void inline loadRegister(AddressMode mode, char* reg){loadRegister(getByte(mode, true), reg);}
     void storeRegister(char byte, unsigned short address){m.setByte(address, byte);}
-    void inline storeRegister(AddressMode mode, char byte){m.setByte(getAddress(mode), byte);}
+    void inline storeRegister(AddressMode mode, char byte){storeRegister(byte, getAddress(mode));}
     void increment(char* reg);
     void inline increment(AddressMode mode){increment(m.getPointerAt(getAddress(mode)));}
     void decrement(char* reg);

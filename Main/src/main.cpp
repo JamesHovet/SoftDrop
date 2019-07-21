@@ -12,10 +12,14 @@
 #include <iostream>
 #include <fstream>
 
+#include <SDL2/SDL.h>
+
 #include "Core/src/Core.hpp"
 #include "Core/src/Mapper.hpp"
 #include "Core/src/Mappers/Mapper000.hpp"
 #include "Core/src/Mappers/Mapper001.hpp"
+
+#include "PPU/src/PPU.hpp"
 
 using namespace std;
 
@@ -25,15 +29,136 @@ static void hexDump(Core &cpu, unsigned short start, unsigned short end);
 static int printable(char byte){return (((unsigned short)byte)&0xff);}
 
 
+bool init();
+void close();
+
+const int SCREEN_WIDTH = 128;
+const int SCREEN_HEIGHT = 128;
+
+SDL_Window* gWindow = NULL;
+SDL_Renderer* gRenderer = NULL;
+
 int main(int argc, const char * argv[]) {
     
-    auto ret = runNestest();
+    Mapper001 map;
+    ifstream file ("Tetris.nes", std::ios::in|std::ios::binary|std::ios::ate);
+    if(!file.is_open()){
+        std::cout << "Unable to open file";
+        return 1;
+    }
+    map.readINES(file);
+    file.close();
+    
+    ifstream ppuDumpFile ("ppuGreen.b", std::ios::in|std::ios::binary|std::ios::ate);
+    if(!ppuDumpFile.is_open()){
+        std::cout << "unable to open";
+        return 1;
+    }
+    char ppuDump[0x4000];
+    ppuDumpFile.seekg(0, std::ios::beg);
+    ppuDumpFile.read(ppuDump, 0x4000);
+    ppuDumpFile.close();
+    
+    memcpy(map.getPPUPointerAt(0x2000), ppuDump + 0x2000, 0x2000);
+    
+    init();
+    PPU ppu = PPU(map, gRenderer);
+//    ppu.renderSpritesheet(3);
+//    ppu.renderSpritesheet(map.getPPUPointerAt(0) + 0x1000 * 0);
+//    ppu.renderNametable(ppuDump + 0x2000, 3);
+//    ppu.renderAllColors();
+//    SDL_RenderPresent(gRenderer);
+    
+//    auto s = sizeof(ppu);
+//    std::cout << s << std::endl;
+    
+    SDL_Event e;
+    bool quit = false;
+    while (!quit){
+        ppu.renderNametable(ppuDump + 0x2000, 3);
+        SDL_RenderPresent(gRenderer);
+        while (SDL_PollEvent(&e)){
+            if (e.type == SDL_QUIT){
+                quit = true;
+            }
+            if (e.type == SDL_KEYDOWN){
+                quit = false;
+            }
+            if (e.type == SDL_MOUSEBUTTONDOWN){
+                quit = false;
+            }
+        }
+    }
+    
+    close();
+    
+//    auto ret = runNestest();
 //    auto ret = run_instr_test_v5();
 
-    return ret;
+//    return ret;
     
-//    return 0;
+    return 0;
 }
+
+bool init()
+{
+    //Initialization flag
+    bool success = true;
+    
+    //Initialize SDL
+    if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
+    {
+        printf( "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
+        success = false;
+    }
+    else
+    {
+        //Create window
+        gWindow = SDL_CreateWindow("SoftDrop", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 256, 256, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+        gRenderer = SDL_CreateRenderer(gWindow, -1, 0);
+        
+        if( gWindow == NULL || gRenderer == NULL)
+        {
+            printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError() );
+            success = false;
+        }
+    }
+    
+    return success;
+}
+
+
+void close()
+{
+    SDL_DestroyRenderer(gRenderer);
+    gRenderer = NULL;
+    
+    //Destroy window
+    SDL_DestroyWindow( gWindow );
+    gWindow = NULL;
+    
+    //Quit SDL subsystems
+    SDL_Quit();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 static void hexDump(Core &cpu, unsigned short start, unsigned short end) {
     for(int i = start; i < end; i+=0x10){

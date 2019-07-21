@@ -10,13 +10,19 @@
 
 Mapper000::Mapper000(){
     memory = new char[0x10000];
+    CHR = new char[0x4000];
+    
 }
 
 Mapper000::~Mapper000(){
     delete[] memory;
+    delete[] CHR;
 }
 
 int Mapper000::readINES(std::ifstream &file){
+    
+    file.seekg(0, std::ios::beg);
+    file.read(header, 0x10);
     
     char* PRG_ROM = &memory[0x8000];
     
@@ -24,7 +30,8 @@ int Mapper000::readINES(std::ifstream &file){
     file.read(PRG_ROM, 0x4000);
     //TODO: Actually check to see if Ines 2.0 header specifies size of PRG ROM;
     memcpy(PRG_ROM + 0x4000, PRG_ROM, 0x4000 * sizeof(char));
-//    file.close();
+    
+    file.read(CHR, 0x4000);
     
     return 0;
 }
@@ -47,4 +54,12 @@ inline char* Mapper000::getPointerAt(unsigned short address){
         return Mapper::getPointerAt(address);
     }
     return &memory[address];
+}
+
+inline char Mapper000::getPPU(unsigned short address){
+    return CHR[address];
+}
+
+inline char* Mapper000::getPPUPointerAt(unsigned short address){
+    return &CHR[address];
 }

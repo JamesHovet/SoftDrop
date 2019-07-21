@@ -754,11 +754,15 @@ Core cpu = Core(mapper);
     
 }
 
-
-
-
-
-
+- (void) testSetOAM {
+    char test[6] = "Hello";
+    memcpy(cpu.m.getPointerAt(0x200), test, 6);
+    cpu.clock = 0;
+    cpu.storeRegister(0x02, 0x4014);
+    XCTAssert(cpu.m.OAM[0] == 'H');
+    XCTAssert(cpu.clock = 514);
+    
+}
 
 
 

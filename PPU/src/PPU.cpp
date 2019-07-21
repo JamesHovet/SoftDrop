@@ -124,8 +124,13 @@ void PPU::generateStaticSpritesheets(){
 }
 
 void PPU::renderSpritesheet(int sheet){
-    SDL_SetPaletteColors(&debugPalette, debugPaletteColors, 0, 4);
-    SDL_SetSurfacePalette(staticSpritesheets[sheet], &debugPalette);
+    SDL_Color debugTmpPaletteColors[4] = {
+        SDL_Color{0,0,0,0},
+        SDL_Color{255,0,0},
+        SDL_Color{255,255,255},
+        SDL_Color{0,0,255}
+    };
+    SDL_SetPaletteColors(staticSpritesheets[sheet]->format->palette, debugTmpPaletteColors, 0, 4);
     
     SDL_Surface* spritesheetSurfaceRGB24 = SDL_CreateRGBSurfaceWithFormat(0, 128, 128, 24, SDL_PIXELFORMAT_RGB24);
     
@@ -177,7 +182,7 @@ void PPU::renderNametable(char *begin, int sheetNumber){
 //        printf("%3d,%3d\tt:%02x\tp:%02x\tc:%3d\n", dst.x, dst.y, tileNumber,paletteNumber, cell);
         
         setTmpPaletteColors(paletteNumber);
-        SDL_SetSurfacePalette(currentSpritesheet, &tmpPalette);
+        SDL_SetPaletteColors(currentSpritesheet->format->palette, &tmpColors[0], 0, 4);
         SDL_BlitSurface(currentSpritesheet, &src, output, &dst);
         
         tile += 1;
@@ -190,6 +195,41 @@ void PPU::renderNametable(char *begin, int sheetNumber){
     
 }
 
+void PPU::renderSprites(){
+    SDL_Surface* output = SDL_CreateRGBSurfaceWithFormat(0, 256, 240, 24, SDL_PIXELFORMAT_RGB24);
+    SDL_Texture* outputTexture;
+    
+    SDL_Rect src{0,0,8,8};
+    SDL_Rect dst{0,0,8,8};
+    
+    unsigned char* head = (unsigned char*)map.getOAM();
+    for(int i = 0; i < 0x100; i += 4){
+        if(*head >= 0xef){
+            head += 4;
+            continue;
+        }
+        unsigned char yPos = *(head + 0);
+        unsigned char tileIndex = *(head + 1);
+        unsigned char attributes = *(head + 2);
+        unsigned char xPos = *(head + 3);
+        
+        src.x = 8 * (tileIndex % 16);
+        src.y = 8 * (tileIndex / 16);
+        
+        dst.x = xPos;
+        dst.y = yPos + 1;
+        
+        SDL_SetPaletteColors(staticSpritesheets[3]->format->palette, debugPaletteColors, 0, 4);
+        SDL_BlitSurface(staticSpritesheets[3], &src, output, &dst);
+        head += 4;
+    }
+    outputTexture = SDL_CreateTextureFromSurface(ppuRenderer, output);
+    SDL_RenderCopy(ppuRenderer, outputTexture, NULL, NULL);
+    
+    SDL_FreeSurface(output);
+    SDL_DestroyTexture(outputTexture);
+}
+
 void PPU::setTmpPaletteColors(int paletteNumber){
     unsigned short firstAddr = 0x3f01 + (0x4 * paletteNumber);
     tmpColors[0] = colors[map.getPPU(0x3f00)]; // universal background
@@ -197,7 +237,6 @@ void PPU::setTmpPaletteColors(int paletteNumber){
         unsigned char colorIndex = (unsigned char)map.getPPU(firstAddr + i);
         tmpColors[i + 1] = colors[colorIndex];
     }
-    SDL_SetPaletteColors(&this->tmpPalette, this->tmpColors, 0, 4);
 }
 
 void PPU::renderAllColors(){

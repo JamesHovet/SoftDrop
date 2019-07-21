@@ -51,7 +51,7 @@ int main(int argc, const char * argv[]) {
     
     ifstream ppuDumpFile ("ppuGreen.b", std::ios::in|std::ios::binary|std::ios::ate);
     if(!ppuDumpFile.is_open()){
-        std::cout << "unable to open";
+        std::cout << "unable to open ppu dump";
         return 1;
     }
     char ppuDump[0x4000];
@@ -61,13 +61,44 @@ int main(int argc, const char * argv[]) {
     
     memcpy(map.getPPUPointerAt(0x2000), ppuDump + 0x2000, 0x2000);
     
+    ifstream oamDumpFile ("tetrisOAM.b", std::ios::in|std::ios::binary|std::ios::ate);
+    if(!oamDumpFile.is_open()){
+        std::cout << "unable to open OAM dump";
+        return 1;
+    }
+    oamDumpFile.seekg(0, std::ios::beg);
+    oamDumpFile.read(map.OAM, 0x100);
+    oamDumpFile.close();
+    
     init();
+    
+//    SDL_Color colors[4] = {
+//        SDL_Color{0,0,0},
+//        SDL_Color{255,0,0},
+//        SDL_Color{0,255,0},
+//        SDL_Color{0,0,255}
+//    };
+//
+//    SDL_Surface* testSurf = SDL_CreateRGBSurfaceWithFormat(0, 128, 128, 8, SDL_PIXELFORMAT_INDEX8);
+//
+//    SDL_SetPaletteColors(testSurf->format->palette, colors, 0, 4);
+//
+//    unsigned char* pixels = (unsigned char*)testSurf->pixels;
+//    for(int i = 0; i < 128*128; i++){
+//        *(pixels++) = (unsigned char)(i % 4);
+//    }
+//
+//    SDL_Texture* outputTexture = SDL_CreateTextureFromSurface(gRenderer, testSurf);
+//    SDL_RenderCopy(gRenderer, outputTexture, NULL, NULL);
+//    SDL_RenderPresent(gRenderer);
+    //-----------
     PPU ppu = PPU(map, gRenderer);
 //    ppu.renderSpritesheet(3);
 //    ppu.renderSpritesheet(map.getPPUPointerAt(0) + 0x1000 * 0);
-//    ppu.renderNametable(ppuDump + 0x2000, 3);
+    ppu.renderNametable(ppuDump + 0x2000, 3);
 //    ppu.renderAllColors();
-//    SDL_RenderPresent(gRenderer);
+    ppu.renderSprites();
+    SDL_RenderPresent(gRenderer);
     
 //    auto s = sizeof(ppu);
 //    std::cout << s << std::endl;
@@ -75,8 +106,8 @@ int main(int argc, const char * argv[]) {
     SDL_Event e;
     bool quit = false;
     while (!quit){
-        ppu.renderNametable(ppuDump + 0x2000, 3);
-        SDL_RenderPresent(gRenderer);
+//        ppu.renderNametable(ppuDump + 0x2000, 3);
+//        SDL_RenderPresent(gRenderer);
         while (SDL_PollEvent(&e)){
             if (e.type == SDL_QUIT){
                 quit = true;

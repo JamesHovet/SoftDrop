@@ -81,7 +81,13 @@ private:
 
     void loadRegister(char byte, char* reg);
     void inline loadRegister(AddressMode mode, char* reg){loadRegister(getByte(mode, true), reg);}
-    void storeRegister(char byte, unsigned short address){m.setByte(address, byte);}
+    void storeRegister(char byte, unsigned short address){
+        if(address == 0x4014){
+            OAMCopy(byte);
+        } else {
+            m.setByte(address, byte);
+        }
+    }
     void inline storeRegister(AddressMode mode, char byte){storeRegister(byte, getAddress(mode));}
     void increment(char* reg);
     void inline increment(AddressMode mode){increment(m.getPointerAt(getAddress(mode)));}
@@ -111,6 +117,14 @@ private:
     void pull(char* dest){*dest = m.getByte(PAGE_ONE + ++SP);}
     unsigned short pullAddress();
     
+    void OAMCopy(char byte){
+        m.setOAM(m.getPointerAt(((unsigned short)byte) << 8));
+        if(clock % 2 == 1){
+            clock += 513;
+        }else{
+            clock += 514;
+        }
+    }
     
     // Utils
     void setFlag(Flag flag, bool val);

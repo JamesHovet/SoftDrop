@@ -23,10 +23,8 @@ private:
     SDL_Surface** staticSpritesheets;
     void generateStaticSpritesheets();
     
-//    SDL_Palette getPalette(int paletteNumber);
     void setTmpPaletteColors(int paletteNumber);
     SDL_Color tmpColors[4];
-    SDL_Palette tmpPalette;
     
 public:
     PPU(Mapper& mapper, SDL_Renderer* renderer);
@@ -35,6 +33,9 @@ public:
     void renderSpritesheet(char* begin);
     void renderSpritesheet(int sheet);
     void renderNametable(char* begin, int sheetNumber);
+    void renderSprites();
+    
+    
     void renderAllColors();
     
     SDL_Color debugPaletteColors[4] = {
@@ -43,7 +44,7 @@ public:
         SDL_Color{255,255,255},
         SDL_Color{0,0,255}
     };
-    SDL_Palette debugPalette;
+    
     
 };
 

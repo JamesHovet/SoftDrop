@@ -39,10 +39,10 @@ public:
     void renderAllColors();
     
     SDL_Color debugPaletteColors[4] = {
-        SDL_Color{0,0,0,0},
-        SDL_Color{255,0,0},
-        SDL_Color{255,255,255},
-        SDL_Color{0,0,255}
+        SDL_Color{0,0,0,255},
+        SDL_Color{255,0,0,255},
+        SDL_Color{255,255,255,255},
+        SDL_Color{0,0,255,255}
     };
     
     

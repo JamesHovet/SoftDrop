@@ -31,6 +31,7 @@ static int printable(char byte){return (((unsigned short)byte)&0xff);}
 
 bool init();
 void close();
+int runPPUTestOne();
 
 const int SCREEN_WIDTH = 128;
 const int SCREEN_HEIGHT = 128;
@@ -38,91 +39,13 @@ const int SCREEN_HEIGHT = 128;
 SDL_Window* gWindow = NULL;
 SDL_Renderer* gRenderer = NULL;
 
+
 int main(int argc, const char * argv[]) {
     
-    Mapper001 map;
-    ifstream file ("Tetris.nes", std::ios::in|std::ios::binary|std::ios::ate);
-    if(!file.is_open()){
-        std::cout << "Unable to open file";
-        return 1;
-    }
-    map.readINES(file);
-    file.close();
     
-    ifstream ppuDumpFile ("ppuGreen.b", std::ios::in|std::ios::binary|std::ios::ate);
-    if(!ppuDumpFile.is_open()){
-        std::cout << "unable to open ppu dump";
-        return 1;
-    }
-    char ppuDump[0x4000];
-    ppuDumpFile.seekg(0, std::ios::beg);
-    ppuDumpFile.read(ppuDump, 0x4000);
-    ppuDumpFile.close();
     
-    memcpy(map.getPPUPointerAt(0x2000), ppuDump + 0x2000, 0x2000);
     
-    ifstream oamDumpFile ("tetrisOAM.b", std::ios::in|std::ios::binary|std::ios::ate);
-    if(!oamDumpFile.is_open()){
-        std::cout << "unable to open OAM dump";
-        return 1;
-    }
-    oamDumpFile.seekg(0, std::ios::beg);
-    oamDumpFile.read(map.OAM, 0x100);
-    oamDumpFile.close();
-    
-    init();
-    
-//    SDL_Color colors[4] = {
-//        SDL_Color{0,0,0},
-//        SDL_Color{255,0,0},
-//        SDL_Color{0,255,0},
-//        SDL_Color{0,0,255}
-//    };
-//
-//    SDL_Surface* testSurf = SDL_CreateRGBSurfaceWithFormat(0, 128, 128, 8, SDL_PIXELFORMAT_INDEX8);
-//
-//    SDL_SetPaletteColors(testSurf->format->palette, colors, 0, 4);
-//
-//    unsigned char* pixels = (unsigned char*)testSurf->pixels;
-//    for(int i = 0; i < 128*128; i++){
-//        *(pixels++) = (unsigned char)(i % 4);
-//    }
-//
-//    SDL_Texture* outputTexture = SDL_CreateTextureFromSurface(gRenderer, testSurf);
-//    SDL_RenderCopy(gRenderer, outputTexture, NULL, NULL);
-//    SDL_RenderPresent(gRenderer);
-    //-----------
-    PPU ppu = PPU(map, gRenderer);
-//    ppu.renderSpritesheet(3);
-//    ppu.renderSpritesheet(map.getPPUPointerAt(0) + 0x1000 * 0);
-    ppu.renderNametable(ppuDump + 0x2000, 3);
-//    ppu.renderAllColors();
-    ppu.renderSprites();
-    SDL_RenderPresent(gRenderer);
-    
-//    auto s = sizeof(ppu);
-//    std::cout << s << std::endl;
-    
-    SDL_Event e;
-    bool quit = false;
-    while (!quit){
-//        ppu.renderNametable(ppuDump + 0x2000, 3);
-//        SDL_RenderPresent(gRenderer);
-        while (SDL_PollEvent(&e)){
-            if (e.type == SDL_QUIT){
-                quit = true;
-            }
-            if (e.type == SDL_KEYDOWN){
-                quit = false;
-            }
-            if (e.type == SDL_MOUSEBUTTONDOWN){
-                quit = false;
-            }
-        }
-    }
-    
-    close();
-    
+//    auto ret = runPPUTestOne();
 //    auto ret = runNestest();
 //    auto ret = run_instr_test_v5();
 
@@ -136,6 +59,8 @@ bool init()
     //Initialization flag
     bool success = true;
     
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, 0);
+    
     //Initialize SDL
     if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
     {
@@ -145,7 +70,7 @@ bool init()
     else
     {
         //Create window
-        gWindow = SDL_CreateWindow("SoftDrop", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 256, 256, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+        gWindow = SDL_CreateWindow("SoftDrop", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 256, 240, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
         gRenderer = SDL_CreateRenderer(gWindow, -1, 0);
         
         if( gWindow == NULL || gRenderer == NULL)
@@ -185,11 +110,71 @@ void close()
 
 
 
-
-
-
-
-
+int runPPUTestOne() {
+    Mapper001 map;
+    ifstream file ("Tetris.nes", std::ios::in|std::ios::binary|std::ios::ate);
+    if(!file.is_open()){
+        std::cout << "Unable to open file";
+        return 1;
+    }
+    map.readINES(file);
+    file.close();
+    
+    ifstream ppuDumpFile ("ppuGreen.b", std::ios::in|std::ios::binary|std::ios::ate);
+    if(!ppuDumpFile.is_open()){
+        std::cout << "unable to open ppu dump";
+        return 1;
+    }
+    char ppuDump[0x4000];
+    ppuDumpFile.seekg(0, std::ios::beg);
+    ppuDumpFile.read(ppuDump, 0x4000);
+    ppuDumpFile.close();
+    
+    memcpy(map.getPPUPointerAt(0x2000), ppuDump + 0x2000, 0x2000);
+    
+    ifstream oamDumpFile ("tetrisOAM.b", std::ios::in|std::ios::binary|std::ios::ate);
+    if(!oamDumpFile.is_open()){
+        std::cout << "unable to open OAM dump";
+        return 1;
+    }
+    oamDumpFile.seekg(0, std::ios::beg);
+    oamDumpFile.read(map.OAM, 0x100);
+    oamDumpFile.close();
+    
+    init();
+    
+    
+    PPU ppu = PPU(map, gRenderer);
+    //    ppu.renderSpritesheet(3);
+    //    ppu.renderSpritesheet(map.getPPUPointerAt(0) + 0x1000 * 0);
+    //    ppu.renderNametable(ppuDump + 0x2000, 3);
+    //    ppu.renderAllColors();
+    //    ppu.renderSprites();
+    //    SDL_RenderPresent(gRenderer);
+    
+    
+    SDL_Event e;
+    bool quit = false;
+    while (!quit){
+        //        ppu.renderNametable(ppuDump + 0x2000, 3);
+        //        ppu.renderSprites();
+        SDL_RenderPresent(gRenderer);
+        while (SDL_PollEvent(&e)){
+            if (e.type == SDL_QUIT){
+                quit = true;
+            }
+            if (e.type == SDL_KEYDOWN){
+                quit = false;
+            }
+            if (e.type == SDL_MOUSEBUTTONDOWN){
+                quit = false;
+            }
+        }
+    }
+    
+    close();
+    return 0;
+}
 
 static void hexDump(Core &cpu, unsigned short start, unsigned short end) {
     for(int i = start; i < end; i+=0x10){

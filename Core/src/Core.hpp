@@ -22,9 +22,13 @@
 #define OVERFLOW_FLAG '\x40'
 #define INTERRUPT_FLAG '\x04'
 #define DECIMAL_FLAG '\x08'
+
 #define PAGE 0x100
 #define STACK_TOP 255
 #define PAGE_ONE 0x100
+#define RESET_VECTOR_LOCATION 0xFFFC
+#define NMI_VECTOR_LOCATION 0xFFFA
+#define IRQ_VECTOR_LOCATION 0xFFFE
 
 #define TESTING_PRG_OFFSET 0x8000
 
@@ -68,7 +72,10 @@ private:
     char flags = DEFAULT_FLAGS;//NV-BDIZC; the 3rd most significant bit is always 1
     unsigned short PC;
     unsigned long clock = 7;
-//    unsigned long clock;
+    bool IRQ = false;
+    bool shouldIRQAfterRTI = false;
+    bool NMI = false;
+    
     Mapper& m;
     
     // Abstractions
@@ -116,6 +123,7 @@ private:
     void push(char byte){m.setByte(PAGE_ONE + SP--, byte);}
     void pull(char* dest){*dest = m.getByte(PAGE_ONE + ++SP);}
     unsigned short pullAddress();
+    void reset();
     
     void OAMCopy(char byte){
         m.setOAM(m.getPointerAt(((unsigned short)byte) << 8));
@@ -129,7 +137,7 @@ private:
     // Utils
     void setFlag(Flag flag, bool val);
     void setArithmaticFlags(char byte);
-    AddressMode getAddressMode(char opcode);
+    AddressMode getAddressModeFromOpcode(char opcode);
     inline bool checkPageOverflow(unsigned short a1, unsigned short a2){
         return (a1 / 0x100) != (a2 / 0x100);
     }
@@ -147,6 +155,8 @@ public:
     int stepTo(unsigned long clockCycle);
     int step();
     unsigned long getClock(){return clock;}
+    inline void setIRQ(){IRQ = true;}
+    inline void setNMI(){NMI = true;}
     void loadIntoMemory(char* bytes, unsigned short address, unsigned short length);
     void loadIntoMemory(std::string hex_chars, unsigned short address);
     void setPC(unsigned short address){PC = address;}

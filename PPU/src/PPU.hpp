@@ -33,7 +33,7 @@ public:
     void renderSpritesheet(char* begin);
     void renderSpritesheet(int sheet);
     void renderNametable(char* begin, int sheetNumber);
-    void renderSprites();
+    void renderSprites(int sheetNumber);
     
     
     void renderAllColors();

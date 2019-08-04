@@ -92,11 +92,11 @@ PPU::~PPU(){
 }
 
 void PPU::generateStaticSpritesheets(){
-    const int NUM_TILES = 0x10 * 0x10 * numStaticSpritesheets;
-    unsigned char tiles[NUM_TILES][0x40];
+    const int totalNumTiles = 0x10 * 0x10 * numStaticSpritesheets;
+    unsigned char tiles[totalNumTiles][0x40];
     unsigned char* chr = (unsigned char*)map.CHR;
     
-    for(int t = 0; t < NUM_TILES; t++){
+    for(int t = 0; t < totalNumTiles; t++){
         for(int i = 0; i < 0x8; i++){
             for(int j = 0; j < 0x8; j++){
                 tiles[t][i * 8 + j] = ((*chr >> (0x7 - j)) & '\x1') +
@@ -113,7 +113,7 @@ void PPU::generateStaticSpritesheets(){
     
     SDL_Surface* spriteSurface = SDL_CreateRGBSurfaceWithFormatFrom(tiles, 8, 8, 8, 8, SDL_PIXELFORMAT_INDEX8);
     SDL_Rect dst; dst.w = 8; dst.h = 8;
-    for(int i = 0; i < NUM_TILES; i++){
+    for(int i = 0; i < totalNumTiles; i++){
         spriteSurface->pixels = tiles[i];
         dst.x = (8 * i) % 128;
         dst.y = ((i % 256) / 16) * 8;
@@ -126,21 +126,21 @@ void PPU::generateStaticSpritesheets(){
 void PPU::renderSpritesheet(int sheet){
     SDL_Color debugTmpPaletteColors[4] = {
         SDL_Color{0,0,0,0},
-        SDL_Color{255,0,0},
-        SDL_Color{255,255,255},
-        SDL_Color{0,0,255}
+        SDL_Color{255,0,0,255},
+        SDL_Color{255,255,255,255},
+        SDL_Color{0,0,255,255}
     };
     SDL_SetPaletteColors(staticSpritesheets[sheet]->format->palette, debugTmpPaletteColors, 0, 4);
     
-    SDL_Surface* spritesheetSurfaceRGB24 = SDL_CreateRGBSurfaceWithFormat(0, 128, 128, 24, SDL_PIXELFORMAT_RGB24);
+    SDL_Surface* spritesheetSurfaceRGBA32 = SDL_CreateRGBSurfaceWithFormat(0, 128, 128, 32, SDL_PIXELFORMAT_RGBA32);
     
-    SDL_BlitSurface(staticSpritesheets[sheet], NULL, spritesheetSurfaceRGB24, NULL);
+    SDL_BlitSurface(staticSpritesheets[sheet], NULL, spritesheetSurfaceRGBA32, NULL);
     
-    SDL_Texture* spritesheetTexture = SDL_CreateTextureFromSurface(ppuRenderer, spritesheetSurfaceRGB24);
+    SDL_Texture* spritesheetTexture = SDL_CreateTextureFromSurface(ppuRenderer, spritesheetSurfaceRGBA32);
     SDL_RenderCopy(ppuRenderer, spritesheetTexture, NULL, NULL);
     
     SDL_DestroyTexture(spritesheetTexture);
-    SDL_FreeSurface(spritesheetSurfaceRGB24);
+    SDL_FreeSurface(spritesheetSurfaceRGBA32);
     
 }
 
@@ -158,6 +158,15 @@ void PPU::renderNametable(char *begin, int sheetNumber){
     SDL_Rect src{0,0,8,8};
     SDL_Rect dst{0,0,8,8};
     
+    //delete
+    SDL_Color debugTmpPaletteColors[4] = {
+        SDL_Color{0,0,0,0},
+        SDL_Color{255,0,0,255},
+        SDL_Color{255,255,255,255},
+        SDL_Color{0,0,255,255}
+    };
+    SDL_SetPaletteColors(currentSpritesheet->format->palette, debugTmpPaletteColors, 0, 4);
+
     for(int i = 0; i < numTilesX * numTilesY; i ++){
         int cell = ((i / 128) * 8) + ((i % 32) / 4);
         int shift = i % 4 >= 2 ? 2 : 0;
@@ -195,10 +204,12 @@ void PPU::renderNametable(char *begin, int sheetNumber){
     
 }
 
-void PPU::renderSprites(){
+void PPU::renderSprites(int sheetNumber){
     SDL_Surface* output = SDL_CreateRGBSurfaceWithFormat(0, 256, 240, 32, SDL_PIXELFORMAT_RGBA32);
     SDL_FillRect(output, NULL, 0);
     SDL_Texture* outputTexture;
+    
+    SDL_Surface* currentSpritesheet = staticSpritesheets[sheetNumber];
     
     SDL_Rect src{0,0,8,8};
     SDL_Rect dst{0,0,8,8};
@@ -222,8 +233,8 @@ void PPU::renderSprites(){
         
         setTmpPaletteColors((attributes & '\x03') + 4);
         
-        SDL_SetPaletteColors(staticSpritesheets[3]->format->palette, tmpColors, 0, 4);
-        SDL_BlitSurface(staticSpritesheets[3], &src, output, &dst);
+        SDL_SetPaletteColors(currentSpritesheet->format->palette, tmpColors, 0, 4);
+        SDL_BlitSurface(currentSpritesheet, &src, output, &dst);
         head += 4;
     }
     outputTexture = SDL_CreateTextureFromSurface(ppuRenderer, output);

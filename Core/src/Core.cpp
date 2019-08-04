@@ -104,10 +104,32 @@ int Core::stepTo(unsigned long clockCycle){
 // Processor
 
 int Core::step(){
+    //handle interrupts
+    if(NMI || IRQ){
+        push((char)((PC >> 8) & '\xff'));
+        push((char)(PC & '\xff'));
+        push(flags);
+        if(NMI){
+            printf("Servicing NMI\n");
+            PC = getIndirectWithWrapping(NMI_VECTOR_LOCATION);
+            NMI = false;
+            if(IRQ){
+                IRQ = false;
+                shouldIRQAfterRTI = true; // if both are set, the IRQ should be handled after the RTI
+            }
+        } else if(IRQ){
+            printf("Servicing IRQ\n");
+            PC = getIndirectWithWrapping(IRQ_VECTOR_LOCATION);
+            IRQ = false;
+        }
+        clock += 7;
+        return 0;
+    }
     
+    //setup main opcode handling
     char op = m.getByte(PC++);
     unsigned char op_u = (unsigned char)op;
-    AddressMode mode = getAddressMode(op);
+    AddressMode mode = getAddressModeFromOpcode(op);
     
     //debug
 #ifdef CUSTOM_DEBUG
@@ -133,6 +155,7 @@ int Core::step(){
     std::cout << std::endl;
 #endif
     
+    //main opcodes
     clock += cycleCounts[op_u];
     
     /* LDA */
@@ -572,6 +595,7 @@ int Core::step(){
         case '\x40':
             pull(&flags);
             jump(pullAddress());
+            if(shouldIRQAfterRTI){IRQ = true;}
             return 0;
             break;
             
@@ -799,6 +823,10 @@ unsigned short Core::pullAddress(){
     return ((unsigned short)(high) << 8) + (unsigned char)low;
 }
 
+void Core::reset(){
+    PC = getIndirectWithWrapping(RESET_VECTOR_LOCATION);
+}
+
 // Utils
 
 void Core::setFlag(Flag flag, bool val){
@@ -814,7 +842,7 @@ void Core::setArithmaticFlags(char byte){
     setFlag(Flag::negative, (byte & Flag::negative) == Flag::negative);
 }
 
-Core::AddressMode Core::getAddressMode(char opcode){
+Core::AddressMode Core::getAddressModeFromOpcode(char opcode){
     auto mode = addressModeMap[(unsigned char)opcode % 0x20];
     if(mode != special){
         return mode;

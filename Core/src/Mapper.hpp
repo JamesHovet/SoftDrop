@@ -36,7 +36,9 @@ public:
     virtual char* getPPUPointerAt(unsigned short address) = 0;
     
     char* getOAM(){return &OAM[0];}
-    void setOAM(char* start){memcpy(OAM, start, sizeof(char) * 0x100);}
+    void setOAM(char* start){
+        memcpy(OAM, start, sizeof(char) * 0x100);
+    }
     
 };
 

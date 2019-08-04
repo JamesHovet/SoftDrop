@@ -29,15 +29,16 @@ static void hexDump(Core &cpu, unsigned short start, unsigned short end);
 static int printable(char byte){return (((unsigned short)byte)&0xff);}
 
 
-bool init();
-void close();
+bool window_init();
+void window_close();
 int runPPUTestOne();
+void holdWindowOpen();
 
 const int SCREEN_WIDTH = 128;
 const int SCREEN_HEIGHT = 128;
 
-SDL_Window* gWindow = NULL;
-SDL_Renderer* gRenderer = NULL;
+SDL_Window* g_window = NULL;
+SDL_Renderer* g_renderer = NULL;
 
 
 int main(int argc, const char * argv[]) {
@@ -54,7 +55,7 @@ int main(int argc, const char * argv[]) {
     return 0;
 }
 
-bool init()
+bool window_init()
 {
     //Initialization flag
     bool success = true;
@@ -70,28 +71,28 @@ bool init()
     else
     {
         //Create window
-        gWindow = SDL_CreateWindow("SoftDrop", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 256, 240, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-        gRenderer = SDL_CreateRenderer(gWindow, -1, 0);
+        g_window = SDL_CreateWindow("SoftDrop", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 256, 240, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+        g_renderer = SDL_CreateRenderer(g_window, -1, 0);
         
-        if( gWindow == NULL || gRenderer == NULL)
+        if( g_window == NULL || g_renderer == NULL)
         {
             printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError() );
             success = false;
         }
     }
-    
+    SDL_RenderClear(g_renderer);
     return success;
 }
 
 
-void close()
+void window_close()
 {
-    SDL_DestroyRenderer(gRenderer);
-    gRenderer = NULL;
+    SDL_DestroyRenderer(g_renderer);
+    g_renderer = NULL;
     
     //Destroy window
-    SDL_DestroyWindow( gWindow );
-    gWindow = NULL;
+    SDL_DestroyWindow( g_window );
+    g_window = NULL;
     
     //Quit SDL subsystems
     SDL_Quit();
@@ -109,6 +110,26 @@ void close()
 
 
 
+void holdWindowOpen() {
+    SDL_Event e;
+    bool quit = false;
+    while (!quit){
+        //        ppu.renderNametable(ppuDump + 0x2000, 3);
+        //        ppu.renderSprites(3);
+        //        SDL_RenderPresent(gRenderer);
+        while (SDL_PollEvent(&e)){
+            if (e.type == SDL_QUIT){
+                quit = true;
+            }
+            if (e.type == SDL_KEYDOWN){
+                quit = false;
+            }
+            if (e.type == SDL_MOUSEBUTTONDOWN){
+                quit = false;
+            }
+        }
+    }
+}
 
 int runPPUTestOne() {
     Mapper001 map;
@@ -141,38 +162,21 @@ int runPPUTestOne() {
     oamDumpFile.read(map.OAM, 0x100);
     oamDumpFile.close();
     
-    init();
+    window_init();
     
     
-    PPU ppu = PPU(map, gRenderer);
+    PPU ppu = PPU(map, g_renderer);
     //    ppu.renderSpritesheet(3);
     //    ppu.renderSpritesheet(map.getPPUPointerAt(0) + 0x1000 * 0);
-    //    ppu.renderNametable(ppuDump + 0x2000, 3);
-    //    ppu.renderAllColors();
-    //    ppu.renderSprites();
-    //    SDL_RenderPresent(gRenderer);
+        ppu.renderNametable(ppuDump + 0x2000, 3);
+//        ppu.renderAllColors();
+        ppu.renderSprites(3);
+        SDL_RenderPresent(g_renderer);
     
     
-    SDL_Event e;
-    bool quit = false;
-    while (!quit){
-        //        ppu.renderNametable(ppuDump + 0x2000, 3);
-        //        ppu.renderSprites();
-        SDL_RenderPresent(gRenderer);
-        while (SDL_PollEvent(&e)){
-            if (e.type == SDL_QUIT){
-                quit = true;
-            }
-            if (e.type == SDL_KEYDOWN){
-                quit = false;
-            }
-            if (e.type == SDL_MOUSEBUTTONDOWN){
-                quit = false;
-            }
-        }
-    }
+    holdWindowOpen();
     
-    close();
+    window_close();
     return 0;
 }
 

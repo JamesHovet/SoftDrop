@@ -100,8 +100,7 @@ inline char Mapper001::getByte(unsigned short address){
 }
 
 inline char* Mapper001::getPointerAt(unsigned short address){
-    if((address >= 0x4000 && address < 0x4018) ||
-              (address >= 0x2000 && address <0x4000)){
+    if(Mapper::getPointerAt(address) != nullptr){
         return Mapper::getPointerAt(address);
     } else if(address < 0x2000){
         return Mapper::getPPUPointerAt(address);

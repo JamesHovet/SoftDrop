@@ -92,15 +92,20 @@ void Mapper001::setByte(unsigned short address, char byte){
 }
 
 inline char Mapper001::getByte(unsigned short address){
-    return *getPointerAt(address);
+    if(Mapper::getPointerAt(address) != nullptr){
+        return Mapper::getByte(address);
+    } else {
+        return *getPointerAt(address);
+    }
 }
 
 inline char* Mapper001::getPointerAt(unsigned short address){
-    if(Mapper::getPointerAt(address) != nullptr){
+    char* superRes = Mapper::getPointerAt(address);
+    if(superRes != nullptr){
         return Mapper::getPointerAt(address);
-    } else if(address < 0x2000){
-        return Mapper::getPointerAt(address);
-    } else if(address >= 0x6000 && address < 0x8000){
+    }
+    
+    if(address >= 0x6000 && address < 0x8000){
         return &RAM[address - 0x6000];
     } else if(address < 0xC000){
         unsigned int offset = address - 0x8000;

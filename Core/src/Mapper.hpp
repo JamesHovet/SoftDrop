@@ -21,8 +21,9 @@ private:
     char OAM[0x100];
     
     unsigned short PPUADDR = 0;
-    bool isFirstPPUADDRWrite = false;
+    unsigned short PPUSCROLL = 0;
     
+    char buttonValues;
     
 public:
     Mapper(){}
@@ -51,6 +52,13 @@ public:
     char handlePPURegisterRead(unsigned short address);
     
     void setVBlank();
+    void clearVBlank();
+    
+    unsigned char getPPUSCROLLX();
+    unsigned char getPPUSCROLLY();
+    
+    void setButtonValue(char value){buttonValues = value;}
+    void orButtonValue(char value){buttonValues |= value;}
     
 };
 

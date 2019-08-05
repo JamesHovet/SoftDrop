@@ -77,7 +77,7 @@ const SDL_Color colors[0x40] = {
 
 PPU::PPU(Mapper& mapper, SDL_Renderer* renderer):map(mapper){
     ppuRenderer = renderer;
-    numStaticSpritesheets = mapper.header[5] > 0 ? mapper.header[5] : 1;
+    numStaticSpritesheets = mapper.header[5] > 0 ? mapper.header[5] * 5 : 2;
     staticSpritesheets = new SDL_Surface*[numStaticSpritesheets];
     generateStaticSpritesheets();
 }
@@ -166,7 +166,7 @@ void PPU::renderNametable(char *begin, int sheetNumber){
         SDL_Color{0,0,255,255}
     };
     SDL_SetPaletteColors(currentSpritesheet->format->palette, debugTmpPaletteColors, 0, 4);
-
+    
     for(int i = 0; i < numTilesX * numTilesY; i ++){
         int cell = ((i / 128) * 8) + ((i % 32) / 4);
         int shift = i % 4 >= 2 ? 2 : 0;

@@ -6,7 +6,7 @@
 //  Copyright © 2019 James Hovet. All rights reserved.
 //
 
-#define CUSTOM_DEBUG
+//#define CUSTOM_DEBUG
 
 #include "Core.hpp"
 const int cycleCounts[0x100] = {

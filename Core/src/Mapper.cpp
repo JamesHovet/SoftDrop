@@ -25,18 +25,19 @@ void Mapper::setByte(unsigned short address, char byte){
 }
 
 char Mapper::getByte(unsigned short address){
-    if(address < 0x2000){
-        return RAM[address];
-    } else if(address >= 0x4000 && address < 0x4020){
-        printf("[Mapper]\tRead APUIO address 0x%x\n", address);
-        return APUIO[address - 0x4000];
+    if(address == 0x4016){
+        printf("[Mapper][Controller]\tbuttonValues:%x\n", printable(buttonValues));
+        char val = buttonValues & '\x01';
+        buttonValues = buttonValues >> 1;
+        return val;
     } else if(address >= 0x2000 && address < 0x4000){
         address = 0x2000 + (address % 0x8);
         char res = handlePPURegisterRead(address);
         printf("[Mapper]\tRead %x from PPU Register %x\n", printable(res), address);
         return res;
     }
-    return 0;
+    
+    return *getPointerAt(address);
 }
 
 char* Mapper::getPointerAt(unsigned short address){
@@ -73,12 +74,11 @@ void Mapper::handlePPURegisterWrite(unsigned short address, char byte){
         printf("[Mapper]\t clear VBlank\n");
         PPU[0x2] = PPU[0x2] & '\x7f'; // clear bit 7 (VBlank) on read.
     }
+    if(address == 0x2005){
+        PPUSCROLL = (PPUSCROLL << 8) + (byte & '\xff');
+    }
     if(address == 0x2006){
-        if(isFirstPPUADDRWrite){
-            PPUADDR = byte & '\xff';
-        } else {
-            PPUADDR = (PPUADDR << 8) + (byte & '\xff');
-        }
+        PPUADDR = (PPUADDR << 8) + (byte & '\xff');
     }
     if(address == 0x2007){
         printf("[Mapper]\tPPUADDR = %x, byte = %x\n", PPUADDR, byte);
@@ -93,10 +93,24 @@ void Mapper::handlePPURegisterWrite(unsigned short address, char byte){
 }
 
 char Mapper::handlePPURegisterRead(unsigned short address){
-    return 0;
+    return PPU[address - 0x2000];
 }
 
 
 void Mapper::setVBlank(){
     PPU[2] |= '\x80'; //set bit 7
 }
+
+void Mapper::clearVBlank(){
+    PPU[2] &= '\x7f'; // clear bit 7
+}
+
+unsigned char Mapper::getPPUSCROLLX(){
+    return (PPUSCROLL >> 8) & '\xff';
+}
+
+unsigned char Mapper::getPPUSCROLLY(){
+    return PPUSCROLL & '\xff';
+}
+
+

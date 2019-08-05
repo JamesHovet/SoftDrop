@@ -57,10 +57,6 @@ const int debugOpBytes[] = {
     1,2,0,0,0,2,2,0,1,2,1,0,0,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,3,2,0,0,2,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,1,2,0,0,0,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,1,2,0,0,0,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,0,2,0,0,2,2,2,0,1,0,1,0,3,3,3,0,2,2,0,0,2,2,2,0,0,3,1,0,0,3,0,0,2,2,2,0,2,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,2,2,2,0,1,3,1,0,3,3,3,0,2,2,0,0,2,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,2,2,0,0,2,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0
 };
 
-inline static int printable(char byte){
-    return (((unsigned short)byte)&0xff);
-}
-
 inline static unsigned short promoteUnsigned(char byte){
     return (((unsigned short)byte)&0xff);
 }
@@ -110,7 +106,7 @@ int Core::step(){
         push((char)(PC & '\xff'));
         push(flags);
         if(NMI){
-            printf("[Core]\tServicing NMI; Current PC: %x\n", PC);
+            logf(Log::Level::Core, "Servicing NMI; Current PC: %x\n", PC);
             PC = getIndirectWithWrapping(NMI_VECTOR_LOCATION);
             NMI = false;
             if(IRQ){
@@ -135,19 +131,19 @@ int Core::step(){
 #ifdef CUSTOM_DEBUG
     
     printf("[Core]\t");
-    printf("$%04x:%02x", PC - 1, printable(op));
+    printf("$%04x:%02x", PC - 1, Utils::printable(op));
     printf("\t");
     printf("A:%2x\tX:%2x\tY:%2x\tSP:%2x\tf:%2x\t",
-           printable(A),
-           printable(X),
-           printable(Y),
-           printable(SP),
-           printable(flags));
+           Utils::printable(A),
+           Utils::printable(X),
+           Utils::printable(Y),
+           Utils::printable(SP),
+           Utils::printable(flags));
     
     std::cout << debugOpNames[op_u];
     
     for(int i = 0; i < debugOpBytes[op_u] - 1; i++){
-        std::cout << " " << std::hex << printable(m.getByte(PC + i));
+        std::cout << " " << std::hex << Utils::printable(m.getByte(PC + i));
     }
     
     printf("\tCYC:%lu", clock);
@@ -907,9 +903,9 @@ inline unsigned short Core::getIndirectWithWrapping(unsigned short address){
 
 void Core::debugPrintCPU(){
     printf("A:%2x\tX:%2x\tY:%2x\tSP:%2x\tf:%2x\n",
-           printable(A),
-           printable(X),
-           printable(Y),
-           printable(SP),
-           printable(flags));
+           Utils::printable(A),
+           Utils::printable(X),
+           Utils::printable(Y),
+           Utils::printable(SP),
+           Utils::printable(flags));
 }

@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <cstring>
 #include "Core/src/Mapper.hpp"
+#include "Utils/Utils.hpp"
 
 #define DEFAULT_FLAGS '\x20'
 #define ZERO_FLAG '\x02'

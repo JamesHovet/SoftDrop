@@ -11,6 +11,8 @@
 
 #include <fstream>
 #include <iostream>
+#include "Utils/Utils.hpp"
+#include "Utils/Logger.hpp"
 
 class Mapper {
 private:
@@ -44,7 +46,7 @@ public:
     
     char* getOAM(){return &OAM[0];}
     void setOAM(char* start){
-        printf("[Mapper] OAM Copy\n");
+        logf(Log::Level::Mapper, "OAM Copy\n");
         memcpy(OAM, start, sizeof(char) * 0x100);
     }
     

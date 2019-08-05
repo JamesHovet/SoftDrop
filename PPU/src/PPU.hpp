@@ -12,6 +12,7 @@
 #include <iostream>
 #include <SDL2/SDL.h>
 #include "Core/src/Mapper.hpp"
+#include "Utils/Logger.hpp"
 
 class PPU{
   

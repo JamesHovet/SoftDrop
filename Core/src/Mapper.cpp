@@ -7,33 +7,30 @@
 //
 #include "Mapper.hpp"
 
-inline static int printable(char byte){
-    return (((unsigned short)byte)&0xff);
-}
 
 void Mapper::setByte(unsigned short address, char byte){
     if(address < 0x2000){
         RAM[address] = byte;
     } else if(address >= 0x4000 && address < 0x4020){
-        printf("[Mapper]\tWrote %x into APUIO address 0x%x\n", byte, address);
+        logf(Log::Level::Mapper, "Wrote %x into APUIO address 0x%x\n", byte, address);
         APUIO[address - 0x4000] = byte;
     } else if(address >= 0x2000 && address < 0x4000){
         PPU[address % 0x8] = byte;
-        printf("[Mapper]\tWrite %x to PPU Register %x\n", printable(byte), address);
+        logf(Log::Level::Mapper, "Write %x to PPU Register %x\n", Utils::printable(byte), address);
         handlePPURegisterWrite(address, byte);
     }
 }
 
 char Mapper::getByte(unsigned short address){
     if(address == 0x4016){
-        printf("[Mapper][Controller]\tbuttonValues:%x\n", printable(buttonValues));
+        logf(Log::Level::Mapper | Log::Level::Controller, "buttonValues:%x\n", Utils::printable(buttonValues));
         char val = buttonValues & '\x01';
         buttonValues = buttonValues >> 1;
         return val;
     } else if(address >= 0x2000 && address < 0x4000){
         address = 0x2000 + (address % 0x8);
         char res = handlePPURegisterRead(address);
-        printf("[Mapper]\tRead %x from PPU Register %x\n", printable(res), address);
+        logf(Log::Level::Mapper, "Read %x from PPU Register %x\n", Utils::printable(res), address);
         return res;
     }
     
@@ -44,7 +41,7 @@ char* Mapper::getPointerAt(unsigned short address){
     if(address < 0x2000){
         return &RAM[address];
     }else if(address >= 0x4000 && address < 0x4020){
-        printf("[Mapper]\tRead* APUIO address 0x%x\n", address);
+        logf(Log::Level::Mapper, "Read* APUIO address 0x%x\n", address);
         return &APUIO[address - 0x4000];
     } else if(address >= 0x2000 && address < 0x4000){
         return &PPU[address % 0x8];
@@ -55,7 +52,7 @@ char* Mapper::getPointerAt(unsigned short address){
 void Mapper::setPPU(unsigned short address, char byte){
     if(address >= 0x2000){
         VRAM[address - 0x2000] = byte;
-//        VRAM[address - 0x2000] = address % 64;
+        //        VRAM[address - 0x2000] = address % 64;
     }
 }
 char Mapper::getPPU(unsigned short address){
@@ -71,7 +68,7 @@ char* Mapper::getPPUPointerAt(unsigned short address){
 void Mapper::handlePPURegisterWrite(unsigned short address, char byte){
     PPU[address % 0x8] = byte;
     if(address == 0x2002){
-        printf("[Mapper]\t clear VBlank\n");
+        logf(Log::Level::Mapper, " clear VBlank\n");
         PPU[0x2] = PPU[0x2] & '\x7f'; // clear bit 7 (VBlank) on read.
     }
     if(address == 0x2005){
@@ -79,12 +76,12 @@ void Mapper::handlePPURegisterWrite(unsigned short address, char byte){
     }
     if(address == 0x2006){
         PPUADDR = ((PPUADDR & 0xff) << 8) + (unsigned char)byte;
-        printf("[Mapper]\tNewPPUADDR: %x\n", PPUADDR);
+        logf(Log::Level::Mapper, "NewPPUADDR: %x\n", PPUADDR);
     }
     if(address == 0x2007){
-        printf("[Mapper]\tPPUADDR = %x, byte = %x\n", PPUADDR, byte);
+        logf(Log::Level::Mapper, "PPUADDR = %x, byte = %x\n", PPUADDR, byte);
         this->setPPU(PPUADDR, byte);
-//        setPPU(PPUADDR, 1);
+        //        setPPU(PPUADDR, 1);
         if(PPU[0x0] & '\x04'){
             PPUADDR += 32;
         } else {

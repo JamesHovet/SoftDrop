@@ -188,7 +188,7 @@ void PPU::renderNametable(char *begin, int sheetNumber){
         dst.x = 8 * (i % numTilesX);
         dst.y = 8 * (i / numTilesX);
         
-//        printf("[PPU]\t%3d,%3d\tt:%02x\tp:%02x\tc:%3d\n", dst.x, dst.y, tileNumber,paletteNumber, cell);
+        logf(Log::Level::PPU,"%3d,%3d\tt:%02x\tp:%02x\tc:%3d\n", dst.x, dst.y, tileNumber,paletteNumber, cell);
         
         setTmpPaletteColors(paletteNumber);
         SDL_SetPaletteColors(currentSpritesheet->format->palette, &tmpColors[0], 0, 4);
@@ -246,7 +246,7 @@ void PPU::renderNametable(unsigned short start, int sheetNumber){
         dst.x = 8 * (i % numTilesX);
         dst.y = 8 * (i / numTilesX);
         
-        printf("[PPU]\t%3d,%3d\tt:%02x\tp:%02x\tc:%3d\n", dst.x, dst.y, tileNumber,paletteNumber, cell);
+        logf(Log::Level::PPU,"%3d,%3d\tt:%02x\tp:%02x\tc:%3d\n", dst.x, dst.y, tileNumber,paletteNumber, cell);
         
         setTmpPaletteColors(paletteNumber);
         SDL_SetPaletteColors(currentSpritesheet->format->palette, &tmpColors[0], 0, 4);

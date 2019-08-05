@@ -37,9 +37,7 @@ int Mapper000::readINES(std::ifstream &file){
 }
 
 void Mapper000::setByte(unsigned short address, char byte){
-    if(address >= 0x2000 && address < 0x4000){
-        Mapper::setByte(address, byte);
-    }
+    Mapper::setByte(address, byte);
     if(address < 0x2000){
         memory[address] = byte;
     }
@@ -50,16 +48,23 @@ inline char Mapper000::getByte(unsigned short address){
 }
 
 inline char* Mapper000::getPointerAt(unsigned short address){
-    if(address >= 0x2000 && address < 0x4000){
-        return Mapper::getPointerAt(address);
+    char* superRes = Mapper::getPointerAt(address);
+    if(superRes == nullptr){
+        return &memory[address];
+    } else {
+        return superRes;
     }
-    return &memory[address];
 }
 
 inline char Mapper000::getPPU(unsigned short address){
-    return CHR[address];
+    return *getPPUPointerAt(address);
 }
 
 inline char* Mapper000::getPPUPointerAt(unsigned short address){
-    return &CHR[address];
+    char* superRes = Mapper::getPPUPointerAt(address);
+    if(superRes == nullptr){
+        return &CHR[address];
+    } else {
+        return superRes;
+    }
 }

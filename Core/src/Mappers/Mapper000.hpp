@@ -27,7 +27,7 @@ public:
     char getByte(unsigned short address);
     char* getPointerAt(unsigned short address);
     
-    void setPPU(unsigned short address, char byte){}
+//    void setPPU(unsigned short address, char byte);
     char getPPU(unsigned short address);
     char* getPPUPointerAt(unsigned short address);
 };

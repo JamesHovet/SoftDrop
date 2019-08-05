@@ -41,12 +41,8 @@ int Mapper001::readINES(std::ifstream &file){
 }
 
 void Mapper001::setByte(unsigned short address, char byte){
-    if((address >= 0x4000 && address < 0x4018) ||
-              (address >= 0x2000 && address <0x4000)){
-        Mapper::setByte(address, byte);
-    } else if(address < 0x2000){
-        Mapper::setByte(address, byte);
-    } else if(address >= 0x6000 && address < 0x8000){
+    Mapper::setByte(address, byte);
+    if(address >= 0x6000 && address < 0x8000){
         RAM[address - 0x6000] = byte;
     } else if (address >= 0x8000){
         if((byte & '\x80') == '\x80'){
@@ -103,7 +99,7 @@ inline char* Mapper001::getPointerAt(unsigned short address){
     if(Mapper::getPointerAt(address) != nullptr){
         return Mapper::getPointerAt(address);
     } else if(address < 0x2000){
-        return Mapper::getPPUPointerAt(address);
+        return Mapper::getPointerAt(address);
     } else if(address >= 0x6000 && address < 0x8000){
         return &RAM[address - 0x6000];
     } else if(address < 0xC000){
@@ -115,9 +111,9 @@ inline char* Mapper001::getPointerAt(unsigned short address){
     }
 }
 
-void Mapper001::setPPU(unsigned short address, char byte){
-    Mapper::setPPU(address, byte);
-}
+//void Mapper001::setPPU(unsigned short address, char byte){
+//    Mapper::setPPU(address, byte);
+//}
 
 char Mapper001::getPPU(unsigned short address){
     return *getPPUPointerAt(address);

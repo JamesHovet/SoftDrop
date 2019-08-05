@@ -110,7 +110,7 @@ int Core::step(){
         push((char)(PC & '\xff'));
         push(flags);
         if(NMI){
-            printf("Servicing NMI\n");
+            printf("[Core]\tServicing NMI; Current PC: %x\n", PC);
             PC = getIndirectWithWrapping(NMI_VECTOR_LOCATION);
             NMI = false;
             if(IRQ){
@@ -118,7 +118,7 @@ int Core::step(){
                 shouldIRQAfterRTI = true; // if both are set, the IRQ should be handled after the RTI
             }
         } else if(IRQ){
-            printf("Servicing IRQ\n");
+            printf("[Core]\tServicing IRQ; Current PC: %x\n", PC);
             PC = getIndirectWithWrapping(IRQ_VECTOR_LOCATION);
             IRQ = false;
         }
@@ -134,6 +134,7 @@ int Core::step(){
     //debug
 #ifdef CUSTOM_DEBUG
     
+    printf("[Core]\t");
     printf("$%04x:%02x", PC - 1, printable(op));
     printf("\t");
     printf("A:%2x\tX:%2x\tY:%2x\tSP:%2x\tf:%2x\t",

@@ -25,7 +25,10 @@ using namespace std;
 
 int runNestest();
 int run_instr_test_v5();
+
 static void hexDump(Core &cpu, unsigned short start, unsigned short end);
+static void hexDumpCPU(Mapper& m, unsigned short start, unsigned short end);
+static void hexDumpPPU(Mapper& m, unsigned short start, unsigned short end);
 static int printable(char byte){return (((unsigned short)byte)&0xff);}
 
 
@@ -43,7 +46,65 @@ SDL_Renderer* g_renderer = NULL;
 
 int main(int argc, const char * argv[]) {
     
-    
+    Mapper000 map;
+    ifstream file ("nestest.nes", std::ios::in|std::ios::binary|std::ios::ate);
+    if(!file.is_open()){
+        std::cout << "Unable to open file";
+        return 1;
+    }
+    map.readINES(file);
+    file.close();
+
+    window_init();
+
+    Core cpu = Core(map);
+    PPU ppu = PPU(map, g_renderer);
+
+    cpu.reset();
+
+    hexDumpPPU(map, 0x2000, 0x2400);
+
+    int STEPS_PER_FRAME = 30000;
+    int STEPS_PER_NMI = 0;
+    int frame = 1;
+
+    SDL_Event e;
+    bool quit = false;
+    while (!quit){
+        while (SDL_PollEvent(&e)){
+            if (e.type == SDL_QUIT){
+                quit = true;
+            }
+            if (e.type == SDL_KEYDOWN){
+                if(e.key.keysym.sym == SDLK_SPACE){
+                    std::cout << "--------Frame " << frame << "--------" << std::endl;
+                    cpu.stepTo(frame * STEPS_PER_FRAME);
+                    if(frame > 1){
+                        cpu.setNMI();
+                        map.setVBlank();
+                    }
+
+                    SDL_RenderClear(g_renderer);
+//                    ppu.renderNametable(map.getPPUPointerAt(0x2000), 0);
+                    ppu.renderNametable(map.VRAM, 0);
+//                    ppu.renderSprites(0);
+//                    ppu.renderSpritesheet(0);
+                    SDL_RenderPresent(g_renderer);
+
+                    frame++;
+
+                    hexDumpPPU(map, 0x2000, 0x2400);
+                } else if(e.key.keysym.sym == SDLK_RETURN){
+
+                }
+            }
+            if (e.type == SDL_MOUSEBUTTONDOWN){
+                quit = false;
+            }
+        }
+    }
+
+    window_close();
     
     
 //    auto ret = runPPUTestOne();
@@ -182,12 +243,51 @@ int runPPUTestOne() {
 
 static void hexDump(Core &cpu, unsigned short start, unsigned short end) {
     for(int i = start; i < end; i+=0x10){
+        printf("[Main]\t");
         printf("$%04x: ", i);
         for(int j = 0; j < 0x10; j++){
             printf("%02x ", printable(cpu.m.getByte(i + j)));
         }
         for(int j = 0; j < 0x10; j++){
             char c = cpu.m.getByte(i + j);
+            if(c > 31 && c < 127){
+                std::cout << c;
+            } else {
+                std::cout << '.';
+            }
+        }
+        printf("\n");
+    }
+}
+
+static void hexDumpCPU(Mapper& m, unsigned short start, unsigned short end) {
+    for(int i = start; i < end; i+=0x10){
+        printf("[Main]\t");
+        printf("$%04x: ", i);
+        for(int j = 0; j < 0x10; j++){
+            printf("%02x ", printable(m.getByte(i + j)));
+        }
+        for(int j = 0; j < 0x10; j++){
+            char c = m.getByte(i + j);
+            if(c > 31 && c < 127){
+                std::cout << c;
+            } else {
+                std::cout << '.';
+            }
+        }
+        printf("\n");
+    }
+}
+
+static void hexDumpPPU(Mapper& m, unsigned short start, unsigned short end) {
+    for(int i = start; i < end; i+=0x10){
+        printf("[Main]\t");
+        printf("$%04x: ", i);
+        for(int j = 0; j < 0x10; j++){
+            printf("%02x ", printable(m.getPPU(i + j)));
+        }
+        for(int j = 0; j < 0x10; j++){
+            char c = m.getPPU(i + j);
             if(c > 31 && c < 127){
                 std::cout << c;
             } else {

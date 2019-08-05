@@ -56,6 +56,9 @@ void Mapper001::setByte(unsigned short address, char byte){
                 unsigned char data = shiftRegister & 0x1F;
                 shiftRegisterCount = 0;
                 shiftRegister = 0x0;
+                
+                printf("[Mapper][Mapper001]\tFull Shift Register: %x\n", data);
+                
                 if(address <= 0x9FFF){
                     Register_Control = data;
                 } else if(address <= 0xBFFF){
@@ -64,6 +67,7 @@ void Mapper001::setByte(unsigned short address, char byte){
                     Register_CHR1 = data;
                 } else {
                     Register_PRG = data;
+                    printf("[Mapper][Mapper001]\tSwitching PRG Bank to %x\n", data);
                     switch ((Register_Control & 0xC) >> 2) {
                         case 0:
                         case 1:

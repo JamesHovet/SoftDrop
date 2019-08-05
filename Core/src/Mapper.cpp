@@ -78,7 +78,8 @@ void Mapper::handlePPURegisterWrite(unsigned short address, char byte){
         PPUSCROLL = (PPUSCROLL << 8) + (byte & '\xff');
     }
     if(address == 0x2006){
-        PPUADDR = (PPUADDR << 8) + (byte & '\xff');
+        PPUADDR = ((PPUADDR & 0xff) << 8) + (unsigned char)byte;
+        printf("[Mapper]\tNewPPUADDR: %x\n", PPUADDR);
     }
     if(address == 0x2007){
         printf("[Mapper]\tPPUADDR = %x, byte = %x\n", PPUADDR, byte);

@@ -33,6 +33,7 @@ public:
     void renderSpritesheet(char* begin);
     void renderSpritesheet(int sheet);
     void renderNametable(char* begin, int sheetNumber);
+    void renderNametable(unsigned short ppuAddress, int sheetNumber);
     void renderSprites(int sheetNumber);
     
     

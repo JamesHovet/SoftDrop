@@ -204,6 +204,62 @@ void PPU::renderNametable(char *begin, int sheetNumber){
     
 }
 
+void PPU::renderNametable(unsigned short start, int sheetNumber){
+    const int numTilesX = 256/8;
+    const int numTilesY = 240/8;
+    
+    SDL_Surface* currentSpritesheet = staticSpritesheets[sheetNumber];
+    
+    SDL_Surface* output = SDL_CreateRGBSurfaceWithFormat(0, 256, 240, 32, SDL_PIXELFORMAT_RGBA32);
+    SDL_Texture* outputTexture;
+    
+    SDL_Rect src{0,0,8,8};
+    SDL_Rect dst{0,0,8,8};
+    
+    //delete
+    SDL_Color debugTmpPaletteColors[4] = {
+        SDL_Color{0,0,0,0},
+        SDL_Color{255,0,0,255},
+        SDL_Color{255,255,255,255},
+        SDL_Color{0,0,255,255}
+    };
+    SDL_SetPaletteColors(currentSpritesheet->format->palette, debugTmpPaletteColors, 0, 4);
+    
+    for(int i = 0; i < numTilesX * numTilesY; i ++){
+        int cell = ((i / 128) * 8) + ((i % 32) / 4);
+        int shift = i % 4 >= 2 ? 2 : 0;
+        if(i % 4 >= 2){
+            shift = 2;
+        } else {
+            shift = 0;
+        }
+        if(i % 128 >= 64){
+            shift += 4;
+        }
+        
+        int paletteNumber = (map.getPPU(start + cell) >> shift) & '\x03';
+        int tileNumber = map.getPPU(start + i);
+        
+        src.x = 8 * (tileNumber % 16);
+        src.y = 8 * (tileNumber / 16);
+        
+        dst.x = 8 * (i % numTilesX);
+        dst.y = 8 * (i / numTilesX);
+        
+        printf("[PPU]\t%3d,%3d\tt:%02x\tp:%02x\tc:%3d\n", dst.x, dst.y, tileNumber,paletteNumber, cell);
+        
+        setTmpPaletteColors(paletteNumber);
+        SDL_SetPaletteColors(currentSpritesheet->format->palette, &tmpColors[0], 0, 4);
+        
+        SDL_BlitSurface(currentSpritesheet, &src, output, &dst);
+    }
+    outputTexture = SDL_CreateTextureFromSurface(ppuRenderer, output);
+    SDL_RenderCopy(ppuRenderer, outputTexture, NULL, NULL);
+    
+    SDL_FreeSurface(output);
+    SDL_DestroyTexture(outputTexture);
+}
+
 void PPU::renderSprites(int sheetNumber){
     SDL_Surface* output = SDL_CreateRGBSurfaceWithFormat(0, 256, 240, 32, SDL_PIXELFORMAT_RGBA32);
     SDL_FillRect(output, NULL, 0);

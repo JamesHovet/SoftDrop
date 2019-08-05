@@ -25,6 +25,7 @@ using namespace std;
 
 int runNestest();
 int run_instr_test_v5();
+int livePlay(char*);
 
 static void hexDump(Core &cpu, unsigned short start, unsigned short end);
 static void hexDumpCPU(Mapper& m, unsigned short start, unsigned short end);
@@ -54,118 +55,45 @@ SDL_Window* g_window = NULL;
 SDL_Renderer* g_renderer = NULL;
 
 
+
+
 int main(int argc, const char * argv[]) {
     
-    Mapper001 map;
-    ifstream file ("nestest.nes", std::ios::in|std::ios::binary|std::ios::ate);
-    if(!file.is_open()){
-        std::cout << "Unable to open file";
-        return 1;
-    }
-    map.readINES(file);
-    file.close();
-
-    window_init();
-
-    Core cpu = Core(map);
-    int status = 0;
-    PPU ppu = PPU(map, g_renderer);
-
-    cpu.reset();
-
-    hexDumpPPU(map, 0x2000, 0x2400);
-
-    int STEPS_PER_FRAME = 29781;
-    int VBLANK_START = 27393;
-    int frame = 0;
-    
-    const int SCREEN_FPS = 60;
-    const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
-    
-    Uint32 startTime = SDL_GetTicks();
-    
-    SDL_Event e;
-    bool quit = false;
-    while (!quit){
-        while (SDL_PollEvent(&e)){
-            if (e.type == SDL_QUIT){
-                quit = true;
-            }
-            if (e.type == SDL_KEYDOWN){
-                if(e.key.keysym.sym == SDLK_SPACE){
-//                    std::cout << "--------Frame " << frame << "--------" << std::endl;
+//    Mapper000 map;
+//    ifstream file ("nestest.nes", std::ios::in|std::ios::binary|std::ios::ate);
+//    if(!file.is_open()){
+//        std::cout << "Unable to open file";
+//        return 1;
+//    }
+//    map.readINES(file);
+//    file.close();
 //
-//                    map.clearVBlank();
-//                    cpu.stepTo(frame * STEPS_PER_FRAME + VBLANK_START);
-//                    cpu.setNMI();
-//                    map.setVBlank();
-//                    cpu.stepTo(frame * STEPS_PER_FRAME + STEPS_PER_FRAME);
+//    window_init();
 //
+//    PPU ppu = PPU(map, g_renderer);
 //
-//                    SDL_RenderClear(g_renderer);
-//                    ppu.renderNametable(map.getPPUPointerAt(0x2000), 1);
-////                    ppu.renderNametable(map.VRAM, 0);
-////                    ppu.renderSprites(0);
-////                    ppu.renderSpritesheet(1);
-//                    SDL_RenderPresent(g_renderer);
+//    map.setByte(0x2006, '\x20');
+//    map.setByte(0x2006, '\x00');
+//    for(int i = 0; i < 0x400; i++){
+//        map.setByte(0x2007, ((i % 32) + (i / 32)) % 32 + 0x41);
+//    }
+//    SDL_RenderClear(g_renderer);
+//    hexDumpPPU(map, 0x2000, 0x2400);
+//    ppu.renderNametable(0x2000, 0);
+////    ppu.renderSpritesheet(0);
+//    SDL_RenderPresent(g_renderer);
 //
-//                    frame++;
-
-//                    hexDumpPPU(map, 0x2000, 0x2400);
-                } else if(e.key.keysym.sym == SDLK_RETURN){
-                    map.orButtonValue(buttons::START);
-                } else if(e.key.keysym.sym == SDLK_RSHIFT){
-                    map.orButtonValue(buttons::SELECT);
-                } else if(e.key.keysym.sym == SDLK_x){
-                    map.orButtonValue(buttons::A);
-                } else if(e.key.keysym.sym == SDLK_z){
-                    map.orButtonValue(buttons::B);
-                } else if(e.key.keysym.sym == SDLK_UP){
-                    map.orButtonValue(buttons::UP);
-                } else if(e.key.keysym.sym == SDLK_DOWN){
-                    map.orButtonValue(buttons::DOWN);
-                } else if(e.key.keysym.sym == SDLK_LEFT){
-                    map.orButtonValue(buttons::LEFT);
-                } else if(e.key.keysym.sym == SDLK_RIGHT){
-                    map.orButtonValue(buttons::RIGHT);
-                }
-            }
-            if (e.type == SDL_MOUSEBUTTONDOWN){
-                quit = false;
-            }
-        }
-    //every frame, outside of polling
-        std::cout << "--------Frame " << frame << "--------" << std::endl;
-
-        map.clearVBlank();
-        status = cpu.stepTo(frame * STEPS_PER_FRAME + VBLANK_START);
-        if(status != 0){
-            printf("[Main][Error]BRK\n");
-        }
-        cpu.setNMI();
-        map.setVBlank();
-        cpu.stepTo(frame * STEPS_PER_FRAME + STEPS_PER_FRAME);
-
-
-        SDL_RenderClear(g_renderer);
-        ppu.renderNametable(map.getPPUPointerAt(0x2000), 0);
-    //                    ppu.renderNametable(map.VRAM, 0);
-    //                    ppu.renderSprites(0);
-    //                    ppu.renderSpritesheet(0);
-        SDL_RenderPresent(g_renderer);
-
-        frame++;
-
-    }
-
-    window_close();
+//    holdWindowOpen();
+//    window_close();
     
+//    auto ret = livePlay("nestest.nes");
+    auto ret = livePlay("Tetris.nes");
     
 //    auto ret = runPPUTestOne();
 //    auto ret = runNestest();
 //    auto ret = run_instr_test_v5();
 
-//    return ret;
+    return ret;
     
     return 0;
 }
@@ -213,18 +141,6 @@ void window_close()
     SDL_Quit();
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 void holdWindowOpen() {
     SDL_Event e;
     bool quit = false;
@@ -246,6 +162,127 @@ void holdWindowOpen() {
     }
 }
 
+//---------------------------------------------------------------------
+
+int livePlay(char* gameName) {
+    Mapper001 map;
+    ifstream file (gameName, std::ios::in|std::ios::binary|std::ios::ate);
+    if(!file.is_open()){
+        std::cout << "Unable to open file";
+        return 1;
+    }
+    map.readINES(file);
+    file.close();
+    
+    window_init();
+    
+    Core cpu = Core(map);
+    int status = 0;
+    PPU ppu = PPU(map, g_renderer);
+    
+    cpu.reset();
+    
+    hexDumpPPU(map, 0x2000, 0x2400);
+    
+    int STEPS_PER_FRAME = 29781;
+    int VBLANK_START = 27393;
+
+    int frame = 0;
+    
+    const int SCREEN_FPS = 60;
+    const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
+    
+    Uint32 startTime = SDL_GetTicks();
+    
+    SDL_Event e;
+    bool quit = false;
+    while (!quit){
+        startTime = SDL_GetTicks();
+        while (SDL_PollEvent(&e)){
+            if (e.type == SDL_QUIT){
+                quit = true;
+            }
+            if (e.type == SDL_KEYDOWN){
+                if(e.key.keysym.sym == SDLK_SPACE){
+                    //                    std::cout << "--------Frame " << frame << "--------" << std::endl;
+                    //
+                    //                    map.clearVBlank();
+                    //                    cpu.stepTo(frame * STEPS_PER_FRAME + VBLANK_START);
+                    //                    cpu.setNMI();
+                    //                    map.setVBlank();
+                    //                    cpu.stepTo(frame * STEPS_PER_FRAME + STEPS_PER_FRAME);
+                    //
+                    //
+                    //                    SDL_RenderClear(g_renderer);
+                    //                    ppu.renderNametable(map.getPPUPointerAt(0x2000), 1);
+                    ////                    ppu.renderNametable(map.VRAM, 0);
+                    ////                    ppu.renderSprites(0);
+                    ////                    ppu.renderSpritesheet(1);
+                    //                    SDL_RenderPresent(g_renderer);
+                    //
+                    //                    frame++;
+                    
+                    //                    hexDumpPPU(map, 0x2000, 0x2400);
+                } else if(e.key.keysym.sym == SDLK_RETURN){
+                    map.orButtonValue(buttons::START);
+                } else if(e.key.keysym.sym == SDLK_RSHIFT){
+                    map.orButtonValue(buttons::SELECT);
+                } else if(e.key.keysym.sym == SDLK_x){
+                    map.orButtonValue(buttons::A);
+                } else if(e.key.keysym.sym == SDLK_z){
+                    map.orButtonValue(buttons::B);
+                } else if(e.key.keysym.sym == SDLK_UP){
+                    map.orButtonValue(buttons::UP);
+                } else if(e.key.keysym.sym == SDLK_DOWN){
+                    map.orButtonValue(buttons::DOWN);
+                } else if(e.key.keysym.sym == SDLK_LEFT){
+                    map.orButtonValue(buttons::LEFT);
+                } else if(e.key.keysym.sym == SDLK_RIGHT){
+                    map.orButtonValue(buttons::RIGHT);
+                }
+            }
+            if (e.type == SDL_MOUSEBUTTONDOWN){
+                quit = false;
+            }
+        }
+        //every frame, outside of polling
+        std::cout << "--------Frame " << frame << "--------" << std::endl;
+        
+        map.clearVBlank();
+        status = cpu.stepTo(frame * STEPS_PER_FRAME + VBLANK_START);
+        if(status != 0){
+            printf("[Main][Error]BRK\n");
+        }
+        cpu.setNMI();
+        map.setVBlank();
+        cpu.stepTo(frame * STEPS_PER_FRAME + STEPS_PER_FRAME);
+        
+        
+        SDL_RenderClear(g_renderer);
+        ppu.renderNametable(map.getPPUPointerAt(0x2000), 7); // tetris 7
+//        hexDumpPPU(map, 0x2000, 0x2400);
+//        ppu.renderNametable(0x2000, 7);
+//        ppu.renderNametable(map.VRAM, 0);
+        ppu.renderSprites(7); // tetris 7
+//        ppu.renderSpritesheet(0);
+        SDL_RenderPresent(g_renderer);
+        
+        frame++;
+        
+        Uint32 currentTime = SDL_GetTicks();
+        Uint32 frameTicks = currentTime - startTime;
+        if(frameTicks < SCREEN_TICKS_PER_FRAME){
+            Uint32 delay = SCREEN_TICKS_PER_FRAME - frameTicks;
+            printf("[Main]\tDelaying %ul\n", delay);
+            SDL_Delay(delay);
+        }
+        
+    }
+    
+    window_close();
+    return 0;
+}
+//---------------------------------------------------------------------
 int runPPUTestOne() {
     Mapper001 map;
     ifstream file ("Tetris.nes", std::ios::in|std::ios::binary|std::ios::ate);

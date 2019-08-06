@@ -13,7 +13,7 @@ void Mapper::setByte(unsigned short address, char byte){
         RAM[address] = byte;
     } else if(address >= 0x4000 && address < 0x4020){
         logf(Log::Level::Mapper, "Wrote %x into APUIO address 0x%x\n", byte, address);
-        APUIO[address - 0x4000] = byte;
+        handleAPUIORegisterWrite(address, byte);
     } else if(address >= 0x2000 && address < 0x4000){
         PPU[address % 0x8] = byte;
         logf(Log::Level::Mapper, "Write %x to PPU Register %x\n", Utils::printable(byte), address);
@@ -22,12 +22,10 @@ void Mapper::setByte(unsigned short address, char byte){
 }
 
 char Mapper::getByte(unsigned short address){
-    if(address == 0x4016){
-        logf(Log::Level::Mapper | Log::Level::Controller, "buttonValues:%x\n", Utils::printable(buttonValues));
-        char val = buttonValues & '\x01';
-        buttonValues = buttonValues >> 1;
-        return val;
-    } else if(address >= 0x2000 && address < 0x4000){
+    if(address >= 0x4000 && address < 0x4020){
+        return handleAPUIORegisterRead(address);
+    }
+    else if(address >= 0x2000 && address < 0x4000){
         address = 0x2000 + (address % 0x8);
         char res = handlePPURegisterRead(address);
         logf(Log::Level::Mapper, "Read %x from PPU Register %x\n", Utils::printable(res), address);
@@ -81,7 +79,6 @@ void Mapper::handlePPURegisterWrite(unsigned short address, char byte){
     if(address == 0x2007){
         logf(Log::Level::Mapper, "PPUADDR = %x, byte = %x\n", PPUADDR, byte);
         this->setPPU(PPUADDR, byte);
-        //        setPPU(PPUADDR, 1);
         if(PPU[0x0] & '\x04'){
             PPUADDR += 32;
         } else {
@@ -94,6 +91,23 @@ char Mapper::handlePPURegisterRead(unsigned short address){
     return PPU[address - 0x2000];
 }
 
+void Mapper::handleAPUIORegisterWrite(unsigned short address, char byte){
+    if(address == 0x4016){
+        tmpButtonValues = buttonValues;
+        logf(Log::Level::Mapper | Log::Level::Controller, "Reset tmpButtonValues to %x\n", Utils::printable(buttonValues));
+    }
+    APUIO[address - 0x4000] = byte;
+}
+
+char Mapper::handleAPUIORegisterRead(unsigned short address){
+    if(address == 0x4016){
+        logf(Log::Level::Mapper | Log::Level::Controller, "tmpButtonValues:%x buttonValues:%x\n", Utils::printable(tmpButtonValues), Utils::printable(buttonValues));
+        char val = tmpButtonValues & '\x01';
+        tmpButtonValues = tmpButtonValues >> 1;
+        return val;
+    }
+    return APUIO[address - 0x4000];
+}
 
 void Mapper::setVBlank(){
     PPU[2] |= '\x80'; //set bit 7
@@ -110,5 +124,3 @@ unsigned char Mapper::getPPUSCROLLX(){
 unsigned char Mapper::getPPUSCROLLY(){
     return PPUSCROLL & '\xff';
 }
-
-

@@ -26,6 +26,7 @@ private:
     unsigned short PPUSCROLL = 0;
     
     char buttonValues;
+    char tmpButtonValues;
     
 public:
     Mapper(){}
@@ -52,6 +53,9 @@ public:
     
     void handlePPURegisterWrite(unsigned short address, char byte);
     char handlePPURegisterRead(unsigned short address);
+    
+    void handleAPUIORegisterWrite(unsigned short address, char byte);
+    char handleAPUIORegisterRead(unsigned short address);
     
     void setVBlank();
     void clearVBlank();

@@ -161,6 +161,7 @@ public:
     void loadIntoMemory(char* bytes, unsigned short address, unsigned short length);
     void loadIntoMemory(std::string hex_chars, unsigned short address);
     void setPC(unsigned short address){PC = address;}
+    void setSP(unsigned char value){SP = value;}
     void loadProgram(std::string hex_chars){
         loadIntoMemory(hex_chars, TESTING_PRG_OFFSET);
         setPC(TESTING_PRG_OFFSET);

@@ -230,20 +230,28 @@ int livePlay(char* gameName, int spritesheet) {
                     //                    hexDumpPPU(map, 0x2000, 0x2400);
                 } else if(e.key.keysym.sym == SDLK_RETURN){
                     map.orButtonValue(buttons::START);
+                    logf(Log::Level::Controller, "Key Pressed: START\n");
                 } else if(e.key.keysym.sym == SDLK_RSHIFT){
                     map.orButtonValue(buttons::SELECT);
+                    logf(Log::Level::Controller, "Key Pressed: SELECT\n");
                 } else if(e.key.keysym.sym == SDLK_x){
                     map.orButtonValue(buttons::A);
+                    logf(Log::Level::Controller, "Key Pressed: A\n");
                 } else if(e.key.keysym.sym == SDLK_z){
                     map.orButtonValue(buttons::B);
+                    logf(Log::Level::Controller, "Key Pressed: B\n");
                 } else if(e.key.keysym.sym == SDLK_UP){
                     map.orButtonValue(buttons::UP);
+                    logf(Log::Level::Controller, "Key Pressed: UP\n");
                 } else if(e.key.keysym.sym == SDLK_DOWN){
                     map.orButtonValue(buttons::DOWN);
+                    logf(Log::Level::Controller, "Key Pressed: DOWN\n");
                 } else if(e.key.keysym.sym == SDLK_LEFT){
                     map.orButtonValue(buttons::LEFT);
+                    logf(Log::Level::Controller, "Key Pressed: LEFT\n");
                 } else if(e.key.keysym.sym == SDLK_RIGHT){
                     map.orButtonValue(buttons::RIGHT);
+                    logf(Log::Level::Controller, "Key Pressed: RIGHT\n");
                 }
             }
             if (e.type == SDL_MOUSEBUTTONDOWN){
@@ -253,6 +261,8 @@ int livePlay(char* gameName, int spritesheet) {
         //every frame, outside of polling
         std::cout << "--------Frame " << frame << "--------" << std::endl;
 
+        // Run Frame
+        
         map.clearVBlank();
         status = cpu.stepTo(frame * STEPS_PER_FRAME + VBLANK_START);
         if(status != 0){
@@ -262,7 +272,8 @@ int livePlay(char* gameName, int spritesheet) {
         map.setVBlank();
         cpu.stepTo(frame * STEPS_PER_FRAME + STEPS_PER_FRAME);
 
-
+        // Draw
+        
         SDL_RenderClear(g_renderer);
         ppu.renderNametable(map.getPPUPointerAt(0x2000), spritesheet); // tetris 7
 //        hexDumpPPU(map, 0x2000, 0x2400);
@@ -282,6 +293,9 @@ int livePlay(char* gameName, int spritesheet) {
             SDL_Delay(delay);
         }
 
+        //Post Draw
+        
+        map.setButtonValue(0);
     }
 
     window_close();

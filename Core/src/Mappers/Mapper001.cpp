@@ -57,17 +57,19 @@ void Mapper001::setByte(unsigned short address, char byte){
                 shiftRegisterCount = 0;
                 shiftRegister = 0x0;
                 
-                logf(Log::Level::Mapper,"[Mapper001]Full Shift Register: %x\n", data);
+                logf(Log::Level::Mapper | Log::Level::SubMapper,"Full Shift Register: %x@0x%4x\n", data, address);
                 
                 if(address <= 0x9FFF){
                     Register_Control = data;
                 } else if(address <= 0xBFFF){
                     Register_CHR0 = data;
+                    logf(Log::Level::Mapper | Log::Level::SubMapper,"Switching CHR0 Bank to %x\n", data);
                 } else if(address <= 0xDFFF){
                     Register_CHR1 = data;
+                    logf(Log::Level::Mapper | Log::Level::SubMapper,"Switching CHR1 Bank to %x\n", data);
                 } else {
                     Register_PRG = data;
-                    logf(Log::Level::Mapper,"[Mapper001]Switching PRG Bank to %x\n", data);
+                    logf(Log::Level::Mapper | Log::Level::SubMapper,"Switching PRG Bank to %x\n", data);
                     switch ((Register_Control & 0xC) >> 2) {
                         case 0:
                         case 1:

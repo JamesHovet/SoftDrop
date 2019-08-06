@@ -14,10 +14,11 @@ const char* levelStrings[] = {
     "Core",
     "Mapper",
     "PPU",
-    "Controller"
+    "Controller",
+    "SubMapper"
 };
 
-unsigned int Log::g_filter = 3;
+unsigned int Log::g_filter = Log::Level::SubMapper | Log::Level::Mapper;
 
 void logf(unsigned int filters, const char* fmt, ...){
     

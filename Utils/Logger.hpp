@@ -28,6 +28,7 @@ namespace Log{
         Mapper = 0x8,
         PPU = 0x10,
         Controller = 0x20,
+        SubMapper = 0x40
     };
 }
 

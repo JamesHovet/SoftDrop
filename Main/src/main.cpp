@@ -44,6 +44,23 @@ enum buttons {
     RIGHT = '\x80'
 };
 
+struct controllerButton {
+    buttons button;
+    int key;
+    std::string buttonName;
+};
+
+controllerButton keyMappings[0x8] = {
+    {buttons::A, SDL_SCANCODE_X, "A"},
+    {buttons::B, SDL_SCANCODE_Z, "B"},
+    {buttons::SELECT, SDL_SCANCODE_RSHIFT, "SELECT"},
+    {buttons::START, SDL_SCANCODE_RETURN, "START"},
+    {buttons::UP, SDL_SCANCODE_UP, "UP"},
+    {buttons::DOWN, SDL_SCANCODE_DOWN, "DOWN"},
+    {buttons::LEFT, SDL_SCANCODE_LEFT, "LEFT"},
+    {buttons::RIGHT, SDL_SCANCODE_RIGHT, "RIGHT"}
+};
+
 bool window_init();
 void window_close();
 int runPPUTestOne();
@@ -60,7 +77,7 @@ SDL_Renderer* g_renderer = NULL;
 
 int main(int argc, const char * argv[]) {
     
-    Log::g_filter = Log::Level::Controller;
+    Log::g_filter = Log::Level::Main;
     
 //    Mapper000 map;
 //    std::ifstream file ("../../Roms/nestest.nes", std::ios::in|std::ios::binary|std::ios::ate);
@@ -202,62 +219,26 @@ int livePlay(char* gameName, int spritesheet) {
     SDL_Event e;
     bool quit = false;
     while (!quit){
+        //poll for input
         startTime = SDL_GetTicks();
         while (SDL_PollEvent(&e)){
             if (e.type == SDL_QUIT){
                 quit = true;
             }
-            if (e.type == SDL_KEYDOWN){
-                if(e.key.keysym.sym == SDLK_SPACE){
-                    //                    std::cout << "--------Frame " << frame << "--------" << std::endl;
-                    //
-                    //                    map.clearVBlank();
-                    //                    cpu.stepTo(frame * STEPS_PER_FRAME + VBLANK_START);
-                    //                    cpu.setNMI();
-                    //                    map.setVBlank();
-                    //                    cpu.stepTo(frame * STEPS_PER_FRAME + STEPS_PER_FRAME);
-                    //
-                    //
-                    //                    SDL_RenderClear(g_renderer);
-                    //                    ppu.renderNametable(map.getPPUPointerAt(0x2000), 1);
-                    ////                    ppu.renderNametable(map.VRAM, 0);
-                    ////                    ppu.renderSprites(0);
-                    ////                    ppu.renderSpritesheet(1);
-                    //                    SDL_RenderPresent(g_renderer);
-                    //
-                    //                    frame++;
-
-                    //                    hexDumpPPU(map, 0x2000, 0x2400);
-                } else if(e.key.keysym.sym == SDLK_RETURN){
-                    map.orButtonValue(buttons::START);
-                    logf(Log::Level::Controller, "Key Pressed: START\n");
-                } else if(e.key.keysym.sym == SDLK_RSHIFT){
-                    map.orButtonValue(buttons::SELECT);
-                    logf(Log::Level::Controller, "Key Pressed: SELECT\n");
-                } else if(e.key.keysym.sym == SDLK_x){
-                    map.orButtonValue(buttons::A);
-                    logf(Log::Level::Controller, "Key Pressed: A\n");
-                } else if(e.key.keysym.sym == SDLK_z){
-                    map.orButtonValue(buttons::B);
-                    logf(Log::Level::Controller, "Key Pressed: B\n");
-                } else if(e.key.keysym.sym == SDLK_UP){
-                    map.orButtonValue(buttons::UP);
-                    logf(Log::Level::Controller, "Key Pressed: UP\n");
-                } else if(e.key.keysym.sym == SDLK_DOWN){
-                    map.orButtonValue(buttons::DOWN);
-                    logf(Log::Level::Controller, "Key Pressed: DOWN\n");
-                } else if(e.key.keysym.sym == SDLK_LEFT){
-                    map.orButtonValue(buttons::LEFT);
-                    logf(Log::Level::Controller, "Key Pressed: LEFT\n");
-                } else if(e.key.keysym.sym == SDLK_RIGHT){
-                    map.orButtonValue(buttons::RIGHT);
-                    logf(Log::Level::Controller, "Key Pressed: RIGHT\n");
-                }
-            }
             if (e.type == SDL_MOUSEBUTTONDOWN){
                 quit = false;
             }
         }
+        
+        //populate controller input
+        const Uint8 *state = SDL_GetKeyboardState(NULL);
+        for(controllerButton pair : keyMappings){
+            if(state[pair.key]){
+                map.orButtonValue(pair.button);
+                logf(Log::Level::Controller, "Key Pressed: %s\n", pair.buttonName.c_str());
+            }
+        }
+        
         //every frame, outside of polling
         std::cout << "--------Frame " << frame << "--------" << std::endl;
 
@@ -289,7 +270,7 @@ int livePlay(char* gameName, int spritesheet) {
         Uint32 frameTicks = currentTime - startTime;
         if(frameTicks < SCREEN_TICKS_PER_FRAME){
             Uint32 delay = SCREEN_TICKS_PER_FRAME - frameTicks;
-            printf("[Main]\tDelaying %ul\n", delay);
+            logf(Log::Level::Main, "Delaying %u\n", delay);
             SDL_Delay(delay);
         }
 

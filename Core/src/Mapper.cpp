@@ -49,7 +49,7 @@ char* Mapper::getPointerAt(unsigned short address){
 
 void Mapper::setPPU(unsigned short address, char byte){
     if(address >= 0x2000){
-        VRAM[address - 0x2000] = byte;
+        VRAM[(address % 0x4000) - 0x2000] = byte;
         //        VRAM[address - 0x2000] = address % 64;
     }
 }

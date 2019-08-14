@@ -14,6 +14,8 @@
 
 #include <SDL2/SDL.h>
 
+#include "boost/program_options.hpp"
+
 #include "Core/src/Core.hpp"
 #include "Core/src/Mapper.hpp"
 #include "Core/src/Mappers/Mapper000.hpp"
@@ -24,42 +26,14 @@
 
 
 
-
+int handleArguments(int argc, const char * argv[]);
 int runNestest();
 int run_instr_test_v5();
-int livePlay(char*, int spritesheet);
+int livePlay(std::string fileName, int spritesheet);
 
 static void hexDump(Core &cpu, unsigned short start, unsigned short end);
 static void hexDumpCPU(Mapper& m, unsigned short start, unsigned short end);
 static void hexDumpPPU(Mapper& m, unsigned short start, unsigned short end);
-
-enum buttons {
-    A = '\x01',
-    B = '\x02',
-    SELECT = '\x04',
-    START = '\x08',
-    UP = '\x10',
-    DOWN = '\x20',
-    LEFT = '\x40',
-    RIGHT = '\x80'
-};
-
-struct controllerButton {
-    buttons button;
-    int key;
-    std::string buttonName;
-};
-
-controllerButton keyMappings[0x8] = {
-    {buttons::A, SDL_SCANCODE_X, "A"},
-    {buttons::B, SDL_SCANCODE_Z, "B"},
-    {buttons::SELECT, SDL_SCANCODE_RSHIFT, "SELECT"},
-    {buttons::START, SDL_SCANCODE_RETURN, "START"},
-    {buttons::UP, SDL_SCANCODE_UP, "UP"},
-    {buttons::DOWN, SDL_SCANCODE_DOWN, "DOWN"},
-    {buttons::LEFT, SDL_SCANCODE_LEFT, "LEFT"},
-    {buttons::RIGHT, SDL_SCANCODE_RIGHT, "RIGHT"}
-};
 
 bool window_init();
 void window_close();
@@ -73,10 +47,14 @@ SDL_Window* g_window = NULL;
 SDL_Renderer* g_renderer = NULL;
 
 
-
-
 int main(int argc, const char * argv[]) {
     
+    //arguments code path
+    if(argc > 0){
+        return handleArguments(argc, argv);
+    }
+    
+    //"default", argumentless code path
     Log::g_filter = Log::Level::Main;
     
 //    Mapper000 map;
@@ -109,14 +87,63 @@ int main(int argc, const char * argv[]) {
 //    unsigned int g_filter = Log::Level::Controller;
     
 //    auto ret = livePlay("../../Roms/nestest.nes", 0);
-    auto ret = livePlay("../../Roms/Tetris.nes", 7);
+//    auto ret = livePlay("../../Roms/Tetris.nes", 7);
 
 //    auto ret = runPPUTestOne();
 //    auto ret = runNestest();
 //    auto ret = run_instr_test_v5();
 
-    return ret;
+//    return ret;
 
+    return 0;
+}
+
+int handleArguments(int argc, const char * argv[]){
+    namespace po = boost::program_options;
+    
+    // Declare the supported options.
+    po::options_description desc("Allowed options");
+    desc.add_options()
+    ("help", "produce help message")
+    ("log", po::value<std::vector<std::string>>(), "output log messages with a given log level")
+    ("nestest_automatic", "run nestest automatic")
+    ("spritesheet", po::value<int>(), "spritesheet")
+    ("play", po::value<std::string>(), "live play a given .nes rom")
+    ;
+    
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+    
+    if (vm.count("help")) {
+        std::cout << desc << "\n";
+        return 1;
+    }
+    
+    if (vm.count("log")) {
+        std::vector<std::string> inputLogLevelStrings = vm["log"].as<std::vector<std::string>>();
+        for(std::string s : inputLogLevelStrings){
+            std::cout << s << "\n";
+            Log::logLevelString v0 = Log::logLevelStringMap.at(s);
+            std::cout << v0.name << " " << v0.level << "\n";
+            Log::g_filter |= v0.level;
+        }
+    }
+    
+    if (vm.count("nestest_automatic")){
+        std::cout << "nestest automatic not yet implimented";
+        return 1;
+    }
+    
+    if (vm.count("play")){
+        int spritesheet = 0;
+        if(vm.count("spritesheet")){
+            spritesheet = vm["spritesheet"].as<int>();
+        }
+        std::string fileName = vm["play"].as<std::string>();
+        return livePlay(fileName, spritesheet);
+    }
+    
     return 0;
 }
 
@@ -186,7 +213,7 @@ void holdWindowOpen() {
 
 //---------------------------------------------------------------------
 
-int livePlay(char* gameName, int spritesheet) {
+int livePlay(std::string gameName, int spritesheet) {
     Mapper001 map;
     std::ifstream file (gameName, std::ios::in|std::ios::binary|std::ios::ate);
     if(!file.is_open()){

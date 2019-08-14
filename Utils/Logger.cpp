@@ -8,24 +8,14 @@
 
 #include "Logger.hpp"
 
-const char* levelStrings[] = {
-    "Error",
-    "Main",
-    "Core",
-    "Mapper",
-    "PPU",
-    "Controller",
-    "SubMapper"
-};
-
-unsigned int Log::g_filter = Log::Level::SubMapper | Log::Level::Mapper;
+unsigned int Log::g_filter = 0;
 
 void logf(unsigned int filters, const char* fmt, ...){
     
     if(filters & Log::g_filter){
         for(int i = 1; i < 16; i++){
             if((1 << i) & filters){
-                std::cout << "[" << levelStrings[i] << "]";
+                std::cout << "[" << Log::logLevelStrings[i].name << "]";
             }
         }
         std::cout << "\t";

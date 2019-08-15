@@ -278,15 +278,21 @@ int livePlay(std::string gameName, int spritesheet) {
             }
         }
         
-        //handle imgui drawing
+        //------------Imgui New Frame----------------
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame(g_window);
         ImGui::NewFrame();
         
-        bool show_demo_window = true;
-        ImGui::ShowDemoWindow(&show_demo_window);
+//        bool show_demo_window = true;
+//        ImGui::ShowDemoWindow(&show_demo_window);
         
-        //populate controller input
+        ImGui::Begin("Hello, world!");
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+        ImGui::InputInt("spritesheet", &spritesheet);
+        ImGui::End();
+        
+        //------------Populate Controller Input----------------
+        map.setButtonValue(0);
         const Uint8 *state = SDL_GetKeyboardState(NULL);
         for(controllerButton pair : keyMappings){
             if(state[pair.key]){
@@ -298,7 +304,7 @@ int livePlay(std::string gameName, int spritesheet) {
         //every frame, outside of polling
         std::cout << "--------Frame " << frame << "--------" << std::endl;
 
-        // Run Frame
+        //------------Run One Frame----------------
         
         map.clearVBlank();
         status = cpu.stepTo(frame * STEPS_PER_FRAME + VBLANK_START);
@@ -309,7 +315,7 @@ int livePlay(std::string gameName, int spritesheet) {
         map.setVBlank();
         cpu.stepTo(frame * STEPS_PER_FRAME + STEPS_PER_FRAME);
 
-        // Draw
+        //------------Draw Call----------------
         
         SDL_RenderClear(g_renderer);
         ppu.renderNametable(map.getPPUPointerAt(0x2000), spritesheet); // tetris 7
@@ -318,8 +324,15 @@ int livePlay(std::string gameName, int spritesheet) {
 //        ppu.renderNametable(map.VRAM, 0);
         ppu.renderSprites(spritesheet); // tetris 7
 //        ppu.renderSpritesheet(0);
+        
+        //imgui drawing
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        
         SDL_RenderPresent(g_renderer);
 
+        //------------Post Draw----------------
+        
         frame++;
 
         Uint32 currentTime = SDL_GetTicks();
@@ -330,15 +343,6 @@ int livePlay(std::string gameName, int spritesheet) {
             SDL_Delay(delay);
         }
 
-        //Post Draw
-        ImGui::Render();
-        glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
-        glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
-        glClear(GL_COLOR_BUFFER_BIT);
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        SDL_GL_SwapWindow(g_window);
-        
-        map.setButtonValue(0);
     }
 
     window_close();

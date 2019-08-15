@@ -9,6 +9,26 @@
 #ifndef main_h
 #define main_h
 
+#include <iostream>
+#include <fstream>
+
+#include "libs/imgui/imgui.h"
+#include "libs/imgui/imgui_impl_sdl.h"
+#include "libs/imgui/imgui_impl_opengl3.h"
+
+#include <SDL2/SDL.h>
+#include <glew.h>
+
+#include "boost/program_options.hpp"
+
+#include "Core/src/Core.hpp"
+#include "Core/src/Mapper.hpp"
+#include "Core/src/Mappers/Mapper000.hpp"
+#include "Core/src/Mappers/Mapper001.hpp"
+#include "PPU/src/PPU.hpp"
+#include "Utils/Utils.hpp"
+#include "Utils/Logger.hpp"
+
 //buttons and button mapping
 enum buttons {
     A = '\x01',

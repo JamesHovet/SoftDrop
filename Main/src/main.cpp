@@ -9,21 +9,6 @@
 #define private public // EVIL HACK
 
 #include "main.h"
-#include <iostream>
-#include <fstream>
-
-#include <SDL2/SDL.h>
-
-#include "boost/program_options.hpp"
-
-#include "Core/src/Core.hpp"
-#include "Core/src/Mapper.hpp"
-#include "Core/src/Mappers/Mapper000.hpp"
-#include "Core/src/Mappers/Mapper001.hpp"
-#include "PPU/src/PPU.hpp"
-#include "Utils/Utils.hpp"
-#include "Utils/Logger.hpp"
-
 
 
 int handleArguments(int argc, const char * argv[]);
@@ -40,11 +25,12 @@ void window_close();
 int runPPUTestOne();
 void holdWindowOpen();
 
-const int SCREEN_WIDTH = 128;
-const int SCREEN_HEIGHT = 128;
+const int SCREEN_WIDTH = 256 * 2;
+const int SCREEN_HEIGHT = 240 * 2;
 
 SDL_Window* g_window = NULL;
 SDL_Renderer* g_renderer = NULL;
+SDL_GLContext gl_context;
 
 
 int main(int argc, const char * argv[]) {
@@ -66,7 +52,7 @@ int main(int argc, const char * argv[]) {
 //    map.readINES(file);
 //    file.close();
 //
-//    window_init();
+    window_init();
 //
 //    PPU ppu = PPU(map, g_renderer);
 //
@@ -81,8 +67,8 @@ int main(int argc, const char * argv[]) {
 //    ppu.renderSpritesheet(0);
 //    SDL_RenderPresent(g_renderer);
 //
-//    holdWindowOpen();
-//    window_close();
+    holdWindowOpen();
+    window_close();
 
 //    unsigned int g_filter = Log::Level::Controller;
     
@@ -162,15 +148,41 @@ bool window_init()
     }
     else
     {
+        const char* glsl_version = "#version 110";
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG); // Always required on Mac
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+        
         //Create window
-        g_window = SDL_CreateWindow("SoftDrop", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 256, 240, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+        SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+        SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+        SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+        g_window = SDL_CreateWindow("SoftDrop", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
         g_renderer = SDL_CreateRenderer(g_window, -1, SDL_RENDERER_ACCELERATED);
-
+        gl_context = SDL_GL_CreateContext(g_window);
+        SDL_GL_MakeCurrent(g_window, gl_context);
+        SDL_GL_SetSwapInterval(1); // Enable vsync
+        
+        glewExperimental = GL_TRUE;
+        bool glewErr = glewInit() != GLEW_OK;
+        
         if( g_window == NULL || g_renderer == NULL)
         {
             printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError() );
             success = false;
         }
+        
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+//        ImGuiIO& io = ImGui::GetIO(); (void)io;
+        
+        ImGui::StyleColorsDark();
+        
+        ImGui_ImplSDL2_InitForOpenGL(g_window, gl_context);
+        ImGui_ImplOpenGL3_Init(glsl_version);
+        
+        
     }
     SDL_RenderClear(g_renderer);
     return success;
@@ -179,6 +191,12 @@ bool window_init()
 
 void window_close()
 {
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
+    
+    SDL_GL_DeleteContext(gl_context);
+    
     SDL_DestroyRenderer(g_renderer);
     g_renderer = NULL;
 
@@ -224,6 +242,8 @@ int livePlay(std::string gameName, int spritesheet) {
     file.close();
 
     window_init();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+
 
     Core cpu = Core(map);
     int status = 0;
@@ -249,6 +269,7 @@ int livePlay(std::string gameName, int spritesheet) {
         //poll for input
         startTime = SDL_GetTicks();
         while (SDL_PollEvent(&e)){
+            ImGui_ImplSDL2_ProcessEvent(&e);
             if (e.type == SDL_QUIT){
                 quit = true;
             }
@@ -256,6 +277,14 @@ int livePlay(std::string gameName, int spritesheet) {
                 quit = false;
             }
         }
+        
+        //handle imgui drawing
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplSDL2_NewFrame(g_window);
+        ImGui::NewFrame();
+        
+        bool show_demo_window = true;
+        ImGui::ShowDemoWindow(&show_demo_window);
         
         //populate controller input
         const Uint8 *state = SDL_GetKeyboardState(NULL);
@@ -302,6 +331,12 @@ int livePlay(std::string gameName, int spritesheet) {
         }
 
         //Post Draw
+        ImGui::Render();
+        glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
+        glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        SDL_GL_SwapWindow(g_window);
         
         map.setButtonValue(0);
     }

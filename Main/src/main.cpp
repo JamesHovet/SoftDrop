@@ -32,6 +32,8 @@ SDL_Window* g_window = NULL;
 SDL_Renderer* g_renderer = NULL;
 SDL_GLContext gl_context;
 
+bool imguiEnabled = true;
+
 
 int main(int argc, const char * argv[]) {
     
@@ -95,6 +97,7 @@ int handleArguments(int argc, const char * argv[]){
     ("nestest_automatic", "run nestest automatic")
     ("spritesheet", po::value<int>(), "spritesheet")
     ("play", po::value<std::string>(), "live play a given .nes rom")
+    ("imgui", "enable the imgui overlay")
     ;
     
     po::variables_map vm;
@@ -128,6 +131,10 @@ int handleArguments(int argc, const char * argv[]){
         }
         std::string fileName = vm["play"].as<std::string>();
         return livePlay(fileName, spritesheet);
+    }
+    
+    if(vm.count("imgui")){
+        imguiEnabled = true;
     }
     
     return 0;
@@ -276,6 +283,10 @@ int livePlay(std::string gameName, int spritesheet) {
             if (e.type == SDL_MOUSEBUTTONDOWN){
                 quit = false;
             }
+            if(e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_i){
+                imguiEnabled = !imguiEnabled;
+                quit = false;
+            }
         }
         
         //------------Imgui New Frame----------------
@@ -285,11 +296,13 @@ int livePlay(std::string gameName, int spritesheet) {
         
 //        bool show_demo_window = true;
 //        ImGui::ShowDemoWindow(&show_demo_window);
-        
-        ImGui::Begin("Hello, world!");
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-        ImGui::InputInt("spritesheet", &spritesheet);
-        ImGui::End();
+        if(imguiEnabled){
+            ImGui::Begin("Hello, world!");
+            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+            ImGui::InputInt("spritesheet", &spritesheet);
+            ImGui::End();
+            
+        }
         
         //------------Populate Controller Input----------------
         map.setButtonValue(0);

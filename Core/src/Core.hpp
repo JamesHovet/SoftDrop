@@ -138,7 +138,7 @@ private:
     // Utils
     void setFlag(Flag flag, bool val);
     void setArithmaticFlags(char byte);
-    AddressMode getAddressModeFromOpcode(char opcode);
+    AddressMode getAddressModeFromOpcode(char opcode) const;
     inline bool checkPageOverflow(unsigned short a1, unsigned short a2){
         return (a1 / 0x100) != (a2 / 0x100);
     }
@@ -148,8 +148,8 @@ private:
 //            std::cout << "\t+1";
         };
     }
-    unsigned short getIndirectWithWrapping(unsigned short address);
-    void debugPrintCPU();
+    unsigned short getIndirectWithWrapping(unsigned short address) const;
+    void debugPrintCPU() const;
 
     
 public:
@@ -162,23 +162,9 @@ public:
     void loadIntoMemory(std::string hex_chars, unsigned short address);
     void setPC(unsigned short address){PC = address;}
     void setSP(unsigned char value){SP = value;}
-    void loadProgram(std::string hex_chars){
-        loadIntoMemory(hex_chars, TESTING_PRG_OFFSET);
-        setPC(TESTING_PRG_OFFSET);
-        clock = 0;
-    }
-    void runProgram(std::string hex_chars){
-        std::cout << "running program\n" << hex_chars << std::endl;
-        loadProgram(hex_chars);
-        flags = DEFAULT_FLAGS;
-        A = 0;
-        X = 0;
-        Y = 0;
-        SP = STACK_TOP;
-        while(step() == 0);
-        printf("clock: %lu\n\n", clock);
-    }
-    bool getFlag(Flag flag){return (flags & flag) == flag;}
+    void loadProgram(std::string hex_chars);
+    void runProgram(std::string hex_chars);
+    bool inline getFlag(Flag flag){return (flags & flag) == flag;}
     
 };
 

@@ -53,9 +53,6 @@ const std::string debugOpNames[] = {
     "BRK","ORA","STP","SLO","NOP","ORA","ASL","SLO","PHP","ORA","ASL","ANC","NOP","ORA","ASL","SLO","BPL","ORA","STP","SLO","NOP","ORA","ASL","SLO","CLC","ORA","NOP","SLO","NOP","ORA","ASL","SLO","JSR","AND","STP","RLA","BIT","AND","ROL","RLA","PLP","AND","ROL","ANC","BIT","AND","ROL","RLA","BMI","AND","STP","RLA","NOP","AND","ROL","RLA","SEC","AND","NOP","RLA","NOP","AND","ROL","RLA","RTI","EOR","STP","SRE","NOP","EOR","LSR","SRE","PHA","EOR","LSR","ALR","JMP","EOR","LSR","SRE","BVC","EOR","STP","SRE","NOP","EOR","LSR","SRE","CLI","EOR","NOP","SRE","NOP","EOR","LSR","SRE","RTS","ADC","STP","RRA","NOP","ADC","ROR","RRA","PLA","ADC","ROR","ARR","JMP","ADC","ROR","RRA","BVS","ADC","STP","RRA","NOP","ADC","ROR","RRA","SEI","ADC","NOP","RRA","NOP","ADC","ROR","RRA","NOP","STA","NOP","SAX","STY","STA","STX","SAX","DEY","NOP","TXA","XAA","STY","STA","STX","SAX","BCC","STA","STP","AHX","STY","STA","STX","SAX","TYA","STA","TXS","TAS","SHY","STA","SHX","AHX","LDY","LDA","LDX","LAX","LDY","LDA","LDX","LAX","TAY","LDA","TAX","LAX","LDY","LDA","LDX","LAX","BCS","LDA","STP","LAX","LDY","LDA","LDX","LAX","CLV","LDA","TSX","LAS","LDY","LDA","LDX","LAX","CPY","CMP","NOP","DCP","CPY","CMP","DEC","DCP","INY","CMP","DEX","AXS","CPY","CMP","DEC","DCP","BNE","CMP","STP","DCP","NOP","CMP","DEC","DCP","CLD","CMP","NOP","DCP","NOP","CMP","DEC","DCP","CPX","SBC","NOP","ISC","CPX","SBC","INC","ISC","INX","SBC","NOP","SBC","CPX","SBC","INC","ISC","BEQ","SBC","STP","ISC","NOP","SBC","INC","ISC","SED","SBC","NOP","ISC","NOP","SBC","INC","ISC"
     
 };
-const int debugOpBytes[] = {
-    1,2,0,0,0,2,2,0,1,2,1,0,0,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,3,2,0,0,2,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,1,2,0,0,0,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,1,2,0,0,0,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,0,2,0,0,2,2,2,0,1,0,1,0,3,3,3,0,2,2,0,0,2,2,2,0,0,3,1,0,0,3,0,0,2,2,2,0,2,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,2,2,2,0,1,3,1,0,3,3,3,0,2,2,0,0,2,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,2,2,0,0,2,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0
-};
 
 inline static unsigned short promoteUnsigned(char byte){
     return (((unsigned short)byte)&0xff);
@@ -65,6 +62,11 @@ inline static signed short promoteSigned(char byte){
     return (((signed short)byte));
 }
 
+/**
+ Initialize a virtual cpu with a reference to a given memory mapper
+
+ @param mapper a memory mapper to handle all memory access for this virtual cpu
+ */
 Core::Core(Mapper& mapper) : m(mapper) {
     
 }
@@ -73,10 +75,27 @@ Core::~Core(){
     
 }
 
+
+/**
+ perform a memcpy from a given location to a given address in virtual memory of a given length.
+ Be careful when calling this method because the only memory location that is garunteed to be
+ correct is the 0th, all others are liable to fail. Reccomended for debugging only.
+
+ @param bytes pointer to first byte to copy
+ @param address virtual memory address to copy to
+ @param length the length, in bytes, of memory to copy
+ */
 void Core::loadIntoMemory(char* bytes, unsigned short address, unsigned short length){
     memcpy(m.getPointerAt(address), bytes, length);
 }
 
+/**
+ Copy a string of hex bytes represented as ascii characters into a given space in virtual memory.
+ Reccomended only for testing/debugging small sets of 6502 code.
+
+ @param hex_chars a string of ascii representing hex bytes. ex. "a9 20 85 01 65 01 00"
+ @param address virtual memory address to copy to
+ */
 void Core::loadIntoMemory(std::string hex_chars, unsigned short address){
     std::istringstream hex_chars_stream(hex_chars);
     
@@ -87,6 +106,14 @@ void Core::loadIntoMemory(std::string hex_chars, unsigned short address){
     }
 }
 
+/**
+ process instructions until the internal clock has advanced past a given clock cycle. This
+ method is garunteed to reach the passed clock cycle, but is liable to proceed at most one
+ "step" or instruction beyond.
+
+ @param clockCycle the clock cycle to reach before stopping
+ @return the status code of the virtual cpu after the last step (non-zero if an error code)
+ */
 int Core::stepTo(unsigned long clockCycle){
     while(clock < clockCycle){
         int status = step();
@@ -99,6 +126,16 @@ int Core::stepTo(unsigned long clockCycle){
 
 // Processor
 
+
+/**
+ Process one processor instruction and, if applicable, service an interrupt first. Automatically
+ increments the processor clock. Return one of the status codes listed below (non-zero if error)
+ 
+ 0: No error
+ 1: CPU hit a BRK instruction
+
+ @return the status code of the virtual cpu after the last step (non-zero if an error code)
+ */
 int Core::step(){
     //handle interrupts
     if(NMI || IRQ){
@@ -152,8 +189,11 @@ int Core::step(){
     std::cout << std::endl;
 #endif
     
-    //main opcodes
+    // increment the clock
     clock += cycleCounts[op_u];
+    
+    
+    //main opcodes
     
     /* LDA */
     switch (op) {
@@ -207,7 +247,6 @@ int Core::step(){
         case '\x86':
         case '\x96':
         case '\x8e':
-//            printf("possible error %02x on PC:%04x\n", X, PC);
             storeRegister(mode, X);
             return 0;
             break;
@@ -611,6 +650,17 @@ int Core::step(){
 
 // Abstrations
 
+/**
+ get the virtual address needed by the current opcode based on the addressing mode of that
+ opcode. For example, if the current opcode needs to know a given value in zero-page memory,
+ return the virtual address of that memory location by processing the arguement of that opcode
+ and increase the PC.
+ 
+ Changes: PC
+
+ @param mode the AddressMode of the opcode to be processed
+ @return the vitual memory address needed by the opcode to be processed.
+ */
 unsigned short Core::getAddress(AddressMode mode){
     unsigned short address = PC + 1;
     switch (mode) {
@@ -658,6 +708,17 @@ unsigned short Core::getAddress(AddressMode mode){
     return address;
 }
 
+/**
+ get the virtual address needed by the current opcode based on the addressing mode of that
+ opcode (see Core::getAddress for more.) If shouldCheckPageOverflow is true, also increments
+ the clock if a memory page boundary is crossed.
+ 
+ Changes: PC, clock
+
+ @param mode the AddressMode of the opcode to be processed
+ @param shouldCheckPageOverflow true if this method should check for a page boundary crossing
+ @return the virtual memory address needed by the opcode to be processed.
+ */
 unsigned short Core::getAddress(AddressMode mode, bool shouldCheckPageOverflow){
     if(shouldCheckPageOverflow &&
        (mode == absoluteX || mode == absoluteY || mode == indirectIndexed)
@@ -685,21 +746,50 @@ unsigned short Core::getAddress(AddressMode mode, bool shouldCheckPageOverflow){
 }
 
 
+/**
+ load a byte into a given virtual register and set associated arithmatic flags.
+ 
+ Changes: registers, flags
+
+ @param byte the byte to be loaded in
+ @param reg a pointer to the register to be loaded into
+ */
 void Core::loadRegister(char byte, char* reg){
     *reg = byte;
     setArithmaticFlags(byte);
 }
 
+/**
+ Increment a given byte of memory (register or RAM) and set associated arithmatic flags.
+ 
+ Changes: memory or registers, flags
+
+ @param byte pointer to the byte to be incremented
+ */
 void Core::increment(char* byte){
     *byte = *byte + 1;
     setArithmaticFlags(*byte);
 }
-
+/**
+ Decrement a given byte of memory (register or RAM) and set associated arithmatic flags.
+ 
+ Changes: memory or registers, flags
+ 
+ @param byte pointer to the byte to be incremented
+ */
 void Core::decrement(char* byte){
     *byte = *byte - 1;
     setArithmaticFlags(*byte);
 }
 
+/**
+ Adds the passed byte to the accumulator with the carry bit. If overflow occurs, the carry bit
+ is also set. sets arithmatic flags.
+ 
+ Changes: A, flags
+
+ @param M The byte to be added to the accumulator.
+ */
 void Core::addWithCarry(char M){
     unsigned short A_u = promoteUnsigned(A);
     unsigned short M_u = promoteUnsigned(M);
@@ -711,6 +801,14 @@ void Core::addWithCarry(char M){
     setArithmaticFlags(A);
 }
 
+/**
+ Subtracts the passed byte from the accumulator, taking into account the carry bit, i.e.
+ A = A - M - (1 - C). If overflow occurs, the carry flag is cleared. Sets arithmatic flags.
+ 
+ Changes: A, flags
+
+ @param M the byte to subtract from A
+ */
 void Core::subWithCarry(char M){
     unsigned short A_u = promoteUnsigned(A);
     unsigned short M_u = promoteUnsigned(M);
@@ -722,12 +820,29 @@ void Core::subWithCarry(char M){
     setArithmaticFlags(A);
 }
 
+/**
+ Perform an arithmatic shift left on a given real memory address and sets the
+ arithmatic flags. The carry bit is set to the old bit 7.
+ 
+ Changes: memory or A, flags
+
+ @param byte pointer to the byte to perform the shift on.
+ */
 void Core::shiftLeft(char *byte){
     setFlag(Flag::carry, (*byte & NEGATIVE_FLAG) == NEGATIVE_FLAG); // carry <- old bit 7
     *byte = *byte << 1;
     setArithmaticFlags(*byte);
 }
 
+/**
+ Perform an arithmatic shift left on a byte based on an address mode
+ (including the "accumulator" address mode) and sets artithmatic flags.
+ The carry bit is set to the old bit 7.
+ 
+ Changes: memory or A, flags
+
+ @param mode the address mode used to determine which byte to shift.
+ */
 void Core::shiftLeft(AddressMode mode){
     if(mode == acculumlator){
         shiftLeft(&A);
@@ -736,6 +851,14 @@ void Core::shiftLeft(AddressMode mode){
     }
 }
 
+/**
+ Perform an arithmatic shift right on a given real memory address and sets the
+ arithmatic flags. The carry bit is set to the old bit 0.
+ 
+ Changes: memory or register, flags
+ 
+ @param byte pointer to the byte to perform the shift on.
+ */
 void Core::shiftRight(char *byte){
     setFlag(Flag::carry, (*byte & CARRY_FLAG) == CARRY_FLAG); // old bit 0
     *byte = *byte >> 1;
@@ -743,6 +866,15 @@ void Core::shiftRight(char *byte){
     setArithmaticFlags(*byte);
 }
 
+/**
+ Perform an arithmatic shift right on a byte based on an address mode
+ (including the "accumulator" address mode) and sets artithmatic flags.
+ The carry bit is set to the old bit 0.
+ 
+ Changes: memory or A, flags
+ 
+ @param mode the address mode used to determine which byte to shift.
+ */
 void Core::shiftRight(AddressMode mode){
     if(mode == acculumlator){
         shiftRight(&A);
@@ -751,6 +883,15 @@ void Core::shiftRight(AddressMode mode){
     }
 }
 
+/**
+ Rotate each of the bits at the passed pointer to the left. i.e. shift all bits one
+ place to the left, set bit 0 to the old value of the carry flag, and set the carry flag
+ to the old value of bit 7.
+
+ Changes: memory or register, flags
+ 
+ @param byte pointer to the byte to be rotated.
+ */
 void Core::rotateLeft(char *byte){
     bool oldCarry = getFlag(Flag::carry);
     setFlag(Flag::carry, (*byte & NEGATIVE_FLAG) == NEGATIVE_FLAG); // carry <- old bit 7
@@ -759,6 +900,15 @@ void Core::rotateLeft(char *byte){
     setArithmaticFlags(*byte);
 }
 
+/**
+ Rotate each of the bits at the address determined by the address mode left. i.e. shift all bits
+ one place to the left, set bit 0 to the old value of the carry flag, and set the carry flag
+ to the old value of bit 7.
+ 
+ Changes: memory or A, flags
+ 
+ @param mode the addressMode used to determine which byte to rotate
+*/
 void Core::rotateLeft(AddressMode mode){
     if(mode == acculumlator){
         rotateLeft(&A);
@@ -767,6 +917,15 @@ void Core::rotateLeft(AddressMode mode){
     }
 }
 
+/**
+ Rotate each of the bits at the passed pointer to the right. i.e. shift all bits one
+ place to the right, set bit 7 with the old value of the carry flag and set carry to
+ the old value of bit 0
+ 
+ Changes: memory or register, flags
+ 
+ @param byte pointer to the byte to be rotated.
+ */
 void Core::rotateRight(char *byte){
     bool oldCarry = getFlag(Flag::carry);
     setFlag(Flag::carry, *byte & CARRY_FLAG); // carry <- old bit 0
@@ -776,6 +935,15 @@ void Core::rotateRight(char *byte){
     setArithmaticFlags(*byte);
 }
 
+/**
+ Rotate each of the bits at the address determined by the address mode right. i.e. shift all
+ bits one place to the right, set bit 7 with the old value of the carry flag and set carry to
+ the old value of bit 0
+ 
+ Changes: memory or A, flags
+ 
+ @param mode the addressMode used to determine which byte to rotate
+*/
 void Core::rotateRight(AddressMode mode){
     if(mode == acculumlator){
         rotateRight(&A);
@@ -785,6 +953,16 @@ void Core::rotateRight(AddressMode mode){
 }
 
 
+/**
+ Compare the contents of a given register to a given byte and set flags accordingly. C is high if
+ reg <= byte, Z is high if reg == byte, and N is high if bit 7 of (reg - byte) is high,
+ otherwise all are set false.
+ 
+ Changes: flags
+
+ @param byte the byte to compare with the register
+ @param reg the register to be compared with the byte
+ */
 void Core::compare(char byte, char reg){
     setArithmaticFlags(reg - byte);
     signed short reg_u = promoteUnsigned(reg);
@@ -792,18 +970,39 @@ void Core::compare(char byte, char reg){
     setFlag(Flag::carry, reg_u>= byte_u);
 }
 
+
+/**
+ Bitwise test M with A. i.e. the mask pattern in A is ANDed with M to set or clear the Z flag,
+ but the result is discarded. Bits 7 and 6 of M are copied into N and V respectivly.
+
+ @param M The byte to bit test against.
+ */
 void Core::bit(char M){
     setFlag(Flag::zero, (A & M) == 0);
     setFlag(Flag::overflow, (M & Flag::overflow) == Flag::overflow);
     setFlag(Flag::negative, (M & Flag::negative) == Flag::negative);
 }
 
+/**
+ Branch to a specfic offset according to an address found using a given addressMode
+
+ @param mode the addressMode used to look for the offset value.
+ */
 void Core::branch(AddressMode mode){
     signed char offset = getByte(mode, true);
     clock ++;
     jump(PC + offset);
 }
 
+
+/**
+ Branch to a specfic offset according to an address found using a given addressMode if and only
+ if the passed condition is true. If the condition is false, the PC is incremented according
+ to the addressMode.
+
+ @param mode the addressMode used to look for the offset value
+ @param condition the predicate that determines wheter or not to jump.
+ */
 void Core::branchConditional(AddressMode mode, bool condition){
     if(condition){
         branch(mode);
@@ -812,6 +1011,13 @@ void Core::branchConditional(AddressMode mode, bool condition){
     }
 }
 
+/**
+ Pull an address off the stack and adjust the SP appropriatly.
+ 
+ Changes: SP
+
+ @return the virtual memory address stored at the top of the stack
+ */
 unsigned short Core::pullAddress(){
     char low = 0;
     char high = 0;
@@ -820,12 +1026,26 @@ unsigned short Core::pullAddress(){
     return ((unsigned short)(high) << 8) + (unsigned char)low;
 }
 
+/**
+ Reset the virtual CPU -- setting the PC based on the reset
+ vector in memory 0xFFFC
+ 
+ Changes: PC
+ */
 void Core::reset(){
     PC = getIndirectWithWrapping(RESET_VECTOR_LOCATION);
 }
 
 // Utils
 
+/**
+ Set a given flag to a given boolean value
+
+ Changes: flags
+ 
+ @param flag the flag to be set
+ @param val the value to set the flag to
+ */
 void Core::setFlag(Flag flag, bool val){
     if(val){
         flags = flags | flag;
@@ -834,12 +1054,26 @@ void Core::setFlag(Flag flag, bool val){
     }
 }
 
+/**
+ Set the arithmatic flags, zero and negative, based on a given byte
+ 
+ Changes: flags
+
+ @param byte the byte used to set the flags
+ */
 void Core::setArithmaticFlags(char byte){
     setFlag(Flag::zero, byte == 0);
     setFlag(Flag::negative, (byte & Flag::negative) == Flag::negative);
 }
 
-Core::AddressMode Core::getAddressModeFromOpcode(char opcode){
+
+/**
+ Return the address mode associated with a given opcode
+
+ @param opcode the opcode to use
+ @return the addressMode of the given opcode
+ */
+Core::AddressMode Core::getAddressModeFromOpcode(char opcode) const {
     auto mode = addressModeMap[(unsigned char)opcode % 0x20];
     if(mode != special){
         return mode;
@@ -897,15 +1131,60 @@ Core::AddressMode Core::getAddressModeFromOpcode(char opcode){
     return implicit;
 }
 
-inline unsigned short Core::getIndirectWithWrapping(unsigned short address){
+/**
+ Return the virtual address stored in virtual memory at a given location with
+ all of the neccisary wrapping. i.e. if 10 20 are stored at memory location
+ 0x0000, the getIndirectWithWrapping(0x0) will return 0x2010.
+
+ @param address the first virtual address location where the two bytes for
+ the target address are stored
+ @return the virtual memory address represented by the two bytes stored at the
+ given address
+ */
+inline unsigned short Core::getIndirectWithWrapping(unsigned short address) const {
     return promoteUnsigned(m.getByte(address)) + (m.getByte(((address + 1 )& 0xff) + ((address >> 8) << 8)) << 8);
 }
 
-void Core::debugPrintCPU(){
+/**
+ Print the state of the CPU, including A, X, Y, the SP, and the flags
+ */
+void Core::debugPrintCPU() const {
     printf("A:%2x\tX:%2x\tY:%2x\tSP:%2x\tf:%2x\n",
            Utils::printable(A),
            Utils::printable(X),
            Utils::printable(Y),
            Utils::printable(SP),
            Utils::printable(flags));
+}
+
+// Public Utility/testing methods
+
+/**
+ Load a short snippit of 6502 compiled bytecode (as a std::string of hex) into the virtual
+ CPU at 0x8000 and set the PC there. Intened for testing purposes only
+
+ @param hex_chars the compiled bytecode to be loaded in
+ */
+void Core::loadProgram(std::string hex_chars){
+    loadIntoMemory(hex_chars, TESTING_PRG_OFFSET);
+    setPC(TESTING_PRG_OFFSET);
+    clock = 0;
+}
+
+/**
+ Run a short snippit of compiled 6502 bytecode with a freshly reset virtual CPU. After running
+ prints the ending clock time to cout. Intended for testinf purposes only. 
+
+ @param hex_chars the compiled bytecode to be run.
+ */
+void Core::runProgram(std::string hex_chars){
+    std::cout << "running program\n" << hex_chars << std::endl;
+    loadProgram(hex_chars);
+    flags = DEFAULT_FLAGS;
+    A = 0;
+    X = 0;
+    Y = 0;
+    SP = STACK_TOP;
+    while(step() == 0);
+    printf("clock: %lu\n\n", clock);
 }

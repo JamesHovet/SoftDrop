@@ -101,7 +101,8 @@ int handleArguments(int argc, const char * argv[]){
     ;
     
     po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::parsed_options parsed = po::command_line_parser(argc, argv).options(desc).allow_unregistered().run();
+    po::store(parsed, vm);
     po::notify(vm);
     
     if (vm.count("help")) {

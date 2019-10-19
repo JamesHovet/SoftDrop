@@ -75,6 +75,12 @@ const SDL_Color colors[0x40] = {
     SDL_Color{0,0,0,255}
 };
 
+/**
+ Generate a new PPU with a given memory mapper and a given SDL_Renderer.
+
+ @param mapper the mapper to be used for this PPU
+ @param renderer the renderer to be used for this PPU
+ */
 PPU::PPU(Mapper& mapper, SDL_Renderer* renderer):map(mapper){
     ppuRenderer = renderer;
     numStaticSpritesheets = mapper.header[5] > 0 ? mapper.header[5] * 5 : 2;
@@ -91,11 +97,17 @@ PPU::~PPU(){
     delete[] staticSpritesheets;
 }
 
+/**
+ Go through each spritesheet in the CHR ROM and generate a spritesheet (an SDL_Surface) for it.
+ Store those spritesheets in an array of SDL_Surface*'s. Each spritesheet is in indexed color.
+ */
 void PPU::generateStaticSpritesheets(){
     const int totalNumTiles = 0x10 * 0x10 * numStaticSpritesheets;
     unsigned char tiles[totalNumTiles][0x40];
     unsigned char* chr = (unsigned char*)map.CHR;
     
+    // extract and decode all 8x8 tiles into 64 width arrays of 4 channel indexed color.
+    // see https://wiki.nesdev.com/w/index.php/PPU_pattern_tables for the encoding format
     for(int t = 0; t < totalNumTiles; t++){
         for(int i = 0; i < 0x8; i++){
             for(int j = 0; j < 0x8; j++){
@@ -106,12 +118,14 @@ void PPU::generateStaticSpritesheets(){
         }
         chr += 0x8;
     }
-    
+    // create as many empty 128x128 8 bit indexed color surfaces as needed
     for(int i = 0; i < numStaticSpritesheets; i++){
         staticSpritesheets[i] = SDL_CreateRGBSurfaceWithFormat(0, 128, 128, 8, SDL_PIXELFORMAT_INDEX8);
     }
-    
+    // create a temporary 8x8 surface to hold each tile
     SDL_Surface* spriteSurface = SDL_CreateRGBSurfaceWithFormatFrom(tiles, 8, 8, 8, 8, SDL_PIXELFORMAT_INDEX8);
+    // copy the indexed pixel data from the tiles array to the tmp surface and Blit it to the
+    // proper staticSpritesheet in the proper place.
     SDL_Rect dst; dst.w = 8; dst.h = 8;
     for(int i = 0; i < totalNumTiles; i++){
         spriteSurface->pixels = tiles[i];
@@ -123,12 +137,18 @@ void PPU::generateStaticSpritesheets(){
 
 }
 
+/**
+ Render a debug view of the 64x64 spritesheet at a given index to this PPU's renderer. Useful
+ for debugging/testing.
+
+ @param sheet the index of the desired 64x64 spritesheet
+ */
 void PPU::renderSpritesheet(int sheet){
     SDL_Color debugTmpPaletteColors[4] = {
-        SDL_Color{0,0,0,0},
-        SDL_Color{255,0,0,255},
-        SDL_Color{255,255,255,255},
-        SDL_Color{0,0,255,255}
+        SDL_Color{0,0,0,0},           // black
+        SDL_Color{255,0,0,255},       // red
+        SDL_Color{255,255,255,255},   // white
+        SDL_Color{0,0,255,255}        // blue
     };
     SDL_SetPaletteColors(staticSpritesheets[sheet]->format->palette, debugTmpPaletteColors, 0, 4);
     
@@ -310,6 +330,9 @@ void PPU::setTmpPaletteColors(int paletteNumber){
     }
 }
 
+/**
+ rended all the possible NES colors to the screen for testing/debug purposes.
+ */
 void PPU::renderAllColors(){
     SDL_Surface* outputSurface = SDL_CreateRGBSurface(0, 128, 128, 32, 0, 0, 0, 0);
     SDL_Rect dst = {0,0,8, 32};

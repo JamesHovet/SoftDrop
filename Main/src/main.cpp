@@ -86,6 +86,16 @@ int main(int argc, const char * argv[]) {
     return 0;
 }
 
+static void printLoggingOptions(const boost::program_options::variables_map &vm) {
+    std::vector<std::string> inputLogLevelStrings = vm["log"].as<std::vector<std::string>>();
+    for(std::string s : inputLogLevelStrings){
+        std::cout << s << "\n";
+        Log::logLevelString v0 = Log::logLevelStringMap.at(s);
+        std::cout << v0.name << " " << v0.level << "\n";
+        Log::g_filter |= v0.level;
+    }
+}
+
 int handleArguments(int argc, const char * argv[]){
     namespace po = boost::program_options;
     
@@ -95,7 +105,6 @@ int handleArguments(int argc, const char * argv[]){
     ("help", "produce help message")
     ("log", po::value<std::vector<std::string>>(), "output log messages with a given log level")
     ("nestest_automatic", "run nestest automatic")
-    ("spritesheet", po::value<int>(), "spritesheet")
     ("play", po::value<std::string>(), "live play a given .nes rom")
     ("imgui", "enable the imgui overlay")
     ;
@@ -111,13 +120,7 @@ int handleArguments(int argc, const char * argv[]){
     }
     
     if (vm.count("log")) {
-        std::vector<std::string> inputLogLevelStrings = vm["log"].as<std::vector<std::string>>();
-        for(std::string s : inputLogLevelStrings){
-            std::cout << s << "\n";
-            Log::logLevelString v0 = Log::logLevelStringMap.at(s);
-            std::cout << v0.name << " " << v0.level << "\n";
-            Log::g_filter |= v0.level;
-        }
+        printLoggingOptions(vm);
     }
     
     if (vm.count("nestest_automatic")){
@@ -126,12 +129,8 @@ int handleArguments(int argc, const char * argv[]){
     }
     
     if (vm.count("play")){
-        int spritesheet = 0;
-        if(vm.count("spritesheet")){
-            spritesheet = vm["spritesheet"].as<int>();
-        }
         std::string fileName = vm["play"].as<std::string>();
-        return livePlay(fileName, spritesheet);
+        return livePlay(fileName, 0);
     }
     
     if(vm.count("imgui")){
@@ -252,7 +251,10 @@ int livePlay(std::string gameName, int spritesheet) {
     window_init();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
 
-
+    //options for imgui
+    bool shouldDrawSprites = true;
+    bool shouldDrawNametables = true;
+    
     Core cpu = Core(map);
     int status = 0;
     PPU ppu = PPU(map, g_renderer);
@@ -301,6 +303,9 @@ int livePlay(std::string gameName, int spritesheet) {
             ImGui::Begin("Hello, world!");
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             ImGui::InputInt("spritesheet", &spritesheet);
+            ImGui::Checkbox("draw sprites", &shouldDrawSprites);
+            ImGui::Checkbox("draw nametables", &shouldDrawNametables);
+            
             ImGui::End();
             
         }
@@ -332,11 +337,13 @@ int livePlay(std::string gameName, int spritesheet) {
         //------------Draw Call----------------
         
         SDL_RenderClear(g_renderer);
-        ppu.renderNametable(map.getPPUPointerAt(0x2000), spritesheet); // tetris 7
+        if(shouldDrawNametables)
+            ppu.renderNametable(map.getPPUPointerAt(0x2000), spritesheet); // tetris 7
 //        hexDumpPPU(map, 0x2000, 0x2400);
 //        ppu.renderNametable(0x2000, 7);
 //        ppu.renderNametable(map.VRAM, 0);
-        ppu.renderSprites(spritesheet); // tetris 7
+        if(shouldDrawSprites)
+            ppu.renderSprites(spritesheet); // tetris 7
 //        ppu.renderSpritesheet(0);
         
         //imgui drawing

@@ -29,6 +29,8 @@
 #include "Utils/Utils.hpp"
 #include "Utils/Logger.hpp"
 
+#include "DebugOptions.hpp"
+
 //buttons and button mapping
 enum buttons {
     A = '\x01',

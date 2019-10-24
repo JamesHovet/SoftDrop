@@ -7,8 +7,13 @@
 //
 
 #include "Logger.hpp"
+#include "Main/src/DebugOptions.hpp"
+#include "libs/imgui/imgui.h"
+
 
 unsigned int Log::g_filter = 0;
+
+extern DebugOptions* debugOptions;
 
 /**
  send a log message to the log filterer. If the message passes the filter, it is outputted to
@@ -20,16 +25,18 @@ unsigned int Log::g_filter = 0;
  @param ... arguments for the internal printf
  */
 void logf(unsigned int filters, const char* fmt, ...){
-    if(filters & Log::g_filter){
-        for(int i = 1; i < 16; i++){
-            if((1 << i) & filters){
-                std::cout << "[" << Log::logLevelStrings[i].name << "]";
+    if(debugOptions->shouldLogToStdout){
+        if(filters & Log::g_filter){
+            for(int i = 1; i < 16; i++){
+                if((1 << i) & filters){
+                    std::cout << "[" << Log::logLevelStrings[i].name << "]";
+                }
             }
+            std::cout << "\t";
+            va_list arg;
+            va_start(arg, fmt);
+            vprintf(fmt, arg);
+            va_end(arg);
         }
-        std::cout << "\t";
-        va_list arg;
-        va_start(arg, fmt);
-        vprintf(fmt, arg);
-        va_end(arg);
     }
 }

@@ -32,18 +32,18 @@ SDL_Window* g_window = NULL;
 SDL_Renderer* g_renderer = NULL;
 SDL_GLContext gl_context;
 
-bool imguiEnabled = true;
-
+DebugOptions* debugOptions = nullptr;
 
 int main(int argc, const char * argv[]) {
+    int statusCode = 0;
+    debugOptions = new DebugOptions();
     
     //arguments code path
     if(argc > 0){
-        return handleArguments(argc, argv);
-    }
-    
+        statusCode = handleArguments(argc, argv);
+    } else {
     //"default", argumentless code path
-    Log::g_filter = Log::Level::Main;
+        Log::g_filter = Log::Level::Main;
     
 //    Mapper000 map;
 //    std::ifstream file ("../../Roms/nestest.nes", std::ios::in|std::ios::binary|std::ios::ate);
@@ -54,7 +54,7 @@ int main(int argc, const char * argv[]) {
 //    map.readINES(file);
 //    file.close();
 //
-    window_init();
+        window_init();
 //
 //    PPU ppu = PPU(map, g_renderer);
 //
@@ -69,8 +69,8 @@ int main(int argc, const char * argv[]) {
 //    ppu.renderSpritesheet(0);
 //    SDL_RenderPresent(g_renderer);
 //
-    holdWindowOpen();
-    window_close();
+        holdWindowOpen();
+        window_close();
 
 //    unsigned int g_filter = Log::Level::Controller;
     
@@ -81,12 +81,16 @@ int main(int argc, const char * argv[]) {
 //    auto ret = runNestest();
 //    auto ret = run_instr_test_v5();
 
-//    return ret;
-
-    return 0;
+//    statusCode = ret;
+    }
+    
+    //clean up
+    delete debugOptions;
+    
+    return statusCode;
 }
 
-static void printLoggingOptions(const boost::program_options::variables_map &vm) {
+static void handleLogCommandLineArg(const boost::program_options::variables_map &vm) {
     std::vector<std::string> inputLogLevelStrings = vm["log"].as<std::vector<std::string>>();
     for(std::string s : inputLogLevelStrings){
         std::cout << s << "\n";
@@ -114,29 +118,29 @@ int handleArguments(int argc, const char * argv[]){
     po::store(parsed, vm);
     po::notify(vm);
     
+    if (vm.count("log")) {
+        handleLogCommandLineArg(vm);
+    }
+    
+    if(vm.count("imgui")){
+        debugOptions->shouldDrawImGui = true;
+    }
+    
     if (vm.count("help")) {
         std::cout << desc << "\n";
         return 1;
-    }
-    
-    if (vm.count("log")) {
-        printLoggingOptions(vm);
     }
     
     if (vm.count("nestest_automatic")){
         std::cout << "nestest automatic not yet implimented";
         return 1;
     }
-    
+
     if (vm.count("play")){
         std::string fileName = vm["play"].as<std::string>();
         return livePlay(fileName, 0);
     }
-    
-    if(vm.count("imgui")){
-        imguiEnabled = true;
-    }
-    
+
     return 0;
 }
 
@@ -238,6 +242,41 @@ void holdWindowOpen() {
 
 //---------------------------------------------------------------------
 
+static void drawLoggingFilterButtons(){
+    ImGui::Checkbox("log to stdout", &(debugOptions->shouldLogToStdout));
+    for(auto s : Log::logLevelStrings){
+        ImGui::SameLine();
+        if(ImGui::Button(s.name)){
+            Log::Level level = Log::logLevelStringMap.at(s.name).level;
+            if(!Log::doesPassFilter(level)){
+                Log::g_filter |= level;
+            } else {
+                Log::g_filter &= UINT_MAX - level;
+            }
+        }
+    }
+}
+
+static void drawImGuiGeneralOptions() {
+    ImGui::Begin("General Options");
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
+                1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    
+    ImGui::Checkbox("override spritesheet?", &(debugOptions->shouldOverrideSpritetable));
+    if(debugOptions->shouldOverrideSpritetable){
+        ImGui::SameLine(); ImGui::InputInt("spritesheet", &(debugOptions->spritesheetOverride));
+    }
+    
+    ImGui::Checkbox("draw sprites", &(debugOptions->shouldDrawSprites));
+    ImGui::Checkbox("draw nametables", &(debugOptions->shouldDrawNametables));
+    
+    drawLoggingFilterButtons();
+    
+    ImGui::End();
+}
+
+//---------------------------------------------------------------------
+
 int livePlay(std::string gameName, int spritesheet) {
     Mapper001 map;
     std::ifstream file (gameName, std::ios::in|std::ios::binary|std::ios::ate);
@@ -250,10 +289,6 @@ int livePlay(std::string gameName, int spritesheet) {
 
     window_init();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
-
-    //options for imgui
-    bool shouldDrawSprites = true;
-    bool shouldDrawNametables = true;
     
     Core cpu = Core(map);
     int status = 0;
@@ -287,7 +322,7 @@ int livePlay(std::string gameName, int spritesheet) {
                 quit = false;
             }
             if(e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_i){
-                imguiEnabled = !imguiEnabled;
+                debugOptions->shouldDrawImGui = !debugOptions->shouldDrawImGui;
                 quit = false;
             }
         }
@@ -299,14 +334,8 @@ int livePlay(std::string gameName, int spritesheet) {
         
 //        bool show_demo_window = true;
 //        ImGui::ShowDemoWindow(&show_demo_window);
-        if(imguiEnabled){
-            ImGui::Begin("Hello, world!");
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-            ImGui::InputInt("spritesheet", &spritesheet);
-            ImGui::Checkbox("draw sprites", &shouldDrawSprites);
-            ImGui::Checkbox("draw nametables", &shouldDrawNametables);
-            
-            ImGui::End();
+        if(debugOptions->shouldDrawImGui){
+            drawImGuiGeneralOptions();
             
         }
         
@@ -321,8 +350,9 @@ int livePlay(std::string gameName, int spritesheet) {
         }
         
         //every frame, outside of polling
-        std::cout << "--------Frame " << frame << "--------" << std::endl;
-
+        if(debugOptions->shouldPrintFrameNumbers){
+            std::cout << "--------Frame " << frame << "--------" << std::endl;
+        }
         //------------Run One Frame----------------
         
         map.clearVBlank();
@@ -336,14 +366,15 @@ int livePlay(std::string gameName, int spritesheet) {
 
         //------------Draw Call----------------
         
+        //TODO: spritesheet stuff to do for real.
         SDL_RenderClear(g_renderer);
-        if(shouldDrawNametables)
-            ppu.renderNametable(map.getPPUPointerAt(0x2000), spritesheet); // tetris 7
+        if(debugOptions->shouldDrawNametables)
+            ppu.renderNametable(map.getPPUPointerAt(0x2000), debugOptions->spritesheetOverride); // tetris 7
 //        hexDumpPPU(map, 0x2000, 0x2400);
 //        ppu.renderNametable(0x2000, 7);
 //        ppu.renderNametable(map.VRAM, 0);
-        if(shouldDrawSprites)
-            ppu.renderSprites(spritesheet); // tetris 7
+        if(debugOptions->shouldDrawSprites)
+            ppu.renderSprites(debugOptions->spritesheetOverride); // tetris 7
 //        ppu.renderSpritesheet(0);
         
         //imgui drawing

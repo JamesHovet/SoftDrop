@@ -17,6 +17,8 @@
 #include <iostream>
 #include <map>
 
+#define MAX_IMGUI_LOG_LENGTH 256
+
 namespace Log{
     
     extern unsigned int g_filter;
@@ -56,6 +58,10 @@ namespace Log{
         {"Controller",{"Controller",Log::Level::Controller}},
         {"SubMapper",{"SubMapper",Log::Level::SubMapper}},
     };
+    
+    inline bool doesPassFilter(unsigned int filter){
+        return filter & g_filter;
+    }
 }
 
 void logf(unsigned int filters, const char* fmt, ...);

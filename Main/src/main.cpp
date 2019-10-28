@@ -25,8 +25,8 @@ void window_close();
 int runPPUTestOne();
 void holdWindowOpen();
 
-const int SCREEN_WIDTH = 256 * 2;
-const int SCREEN_HEIGHT = 240 * 2;
+const int SCREEN_WIDTH = 256 * 3;
+const int SCREEN_HEIGHT = 240 * 3;
 
 SDL_Window* g_window = NULL;
 SDL_Renderer* g_renderer = NULL;
@@ -257,10 +257,22 @@ static void drawLoggingFilterButtons(){
     }
 }
 
-static void drawImGuiGeneralOptions() {
+
+
+
+static void drawImGuiGeneralOptions(Mapper& map, PPU& ppu, unsigned long& frame) {
     ImGui::Begin("General Options");
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    
+    if(ImGui::Button("Pause/Play")){
+        debugOptions->isPaused = !debugOptions->isPaused;
+    }
+    ImGui::SameLine();
+    if(ImGui::Button("Advance Frame")){
+        debugOptions->shouldAdvanceOneFrame = true;
+    }
+    ImGui::SameLine(); ImGui::Text("frame: %lu", frame);
     
     ImGui::Checkbox("override spritesheet?", &(debugOptions->shouldOverrideSpritetable));
     if(debugOptions->shouldOverrideSpritetable){
@@ -271,6 +283,23 @@ static void drawImGuiGeneralOptions() {
     ImGui::Checkbox("draw nametables", &(debugOptions->shouldDrawNametables));
     
     drawLoggingFilterButtons();
+    
+//    unsigned short addrForDump = 0;
+    static char addrCStringToConvert [5] = {};
+    static char endOfDumpCStringToConvert [5] = {};
+    ImGui::InputText("Address To Start Dump", addrCStringToConvert, 5);
+    ImGui::InputText("Length of Dump", endOfDumpCStringToConvert, 5);
+    if(ImGui::Button("Hex Dump CPU")){
+        unsigned short start = Utils::convertHexStringToUnsignedShort(addrCStringToConvert, 4);
+        unsigned short end = Utils::convertHexStringToUnsignedShort(endOfDumpCStringToConvert, 4);
+        hexDumpCPU(map, start, end);
+    }
+    ImGui::SameLine();
+    if(ImGui::Button("Hex Dump PPU")){
+        unsigned short start = Utils::convertHexStringToUnsignedShort(addrCStringToConvert, 4);
+        unsigned short end = Utils::convertHexStringToUnsignedShort(endOfDumpCStringToConvert, 4);
+        hexDumpPPU(map, start, end);
+    }
     
     ImGui::End();
 }
@@ -296,12 +325,10 @@ int livePlay(std::string gameName, int spritesheet) {
 
     cpu.reset();
 
-    hexDumpPPU(map, 0x2000, 0x2400);
-
     int STEPS_PER_FRAME = 29781;
     int VBLANK_START = 27393;
 
-    int frame = 0;
+    unsigned long frame = 0;
 
     const int SCREEN_FPS = 60;
     const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
@@ -325,6 +352,9 @@ int livePlay(std::string gameName, int spritesheet) {
                 debugOptions->shouldDrawImGui = !debugOptions->shouldDrawImGui;
                 quit = false;
             }
+            if(e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_p){
+                debugOptions->isPaused = !debugOptions->isPaused;
+            }
         }
         
         //------------Imgui New Frame----------------
@@ -332,10 +362,10 @@ int livePlay(std::string gameName, int spritesheet) {
         ImGui_ImplSDL2_NewFrame(g_window);
         ImGui::NewFrame();
         
-//        bool show_demo_window = true;
-//        ImGui::ShowDemoWindow(&show_demo_window);
+        bool show_demo_window = true;
+        ImGui::ShowDemoWindow(&show_demo_window);
         if(debugOptions->shouldDrawImGui){
-            drawImGuiGeneralOptions();
+            drawImGuiGeneralOptions(map, ppu, frame);
             
         }
         
@@ -349,27 +379,33 @@ int livePlay(std::string gameName, int spritesheet) {
             }
         }
         
-        //every frame, outside of polling
-        if(debugOptions->shouldPrintFrameNumbers){
-            std::cout << "--------Frame " << frame << "--------" << std::endl;
-        }
         //------------Run One Frame----------------
-        
-        map.clearVBlank();
-        status = cpu.stepTo(frame * STEPS_PER_FRAME + VBLANK_START);
-        if(status != 0){
-            printf("[Main][Error]BRK\n");
-        }
-        cpu.setNMI();
-        map.setVBlank();
-        cpu.stepTo(frame * STEPS_PER_FRAME + STEPS_PER_FRAME);
+        if(!debugOptions->isPaused || debugOptions->shouldAdvanceOneFrame){
 
+            if(debugOptions->shouldPrintFrameNumbers){
+                std::cout << "--------Frame " << frame << "--------" << std::endl;
+            }
+            
+            map.clearVBlank();
+            status = cpu.stepTo(frame * STEPS_PER_FRAME + VBLANK_START);
+            if(status != 0){
+                printf("[Main][Error]BRK\n");
+            }
+            cpu.setNMI();
+            map.setVBlank();
+            cpu.stepTo(frame * STEPS_PER_FRAME + STEPS_PER_FRAME);
+
+            frame++;
+            debugOptions->shouldAdvanceOneFrame = false;
+        }
+        
+        
         //------------Draw Call----------------
         
         //TODO: spritesheet stuff to do for real.
         SDL_RenderClear(g_renderer);
         if(debugOptions->shouldDrawNametables)
-            ppu.renderNametable(map.getPPUPointerAt(0x2000), debugOptions->spritesheetOverride); // tetris 7
+            ppu.renderNametable(map.getPPUPointerAt(0x2000), debugOptions->spritesheetOverride);
 //        hexDumpPPU(map, 0x2000, 0x2400);
 //        ppu.renderNametable(0x2000, 7);
 //        ppu.renderNametable(map.VRAM, 0);
@@ -384,9 +420,6 @@ int livePlay(std::string gameName, int spritesheet) {
         SDL_RenderPresent(g_renderer);
 
         //------------Post Draw----------------
-        
-        frame++;
-
         Uint32 currentTime = SDL_GetTicks();
         Uint32 frameTicks = currentTime - startTime;
         if(frameTicks < SCREEN_TICKS_PER_FRAME){

@@ -22,6 +22,9 @@ public:
     bool shouldOverrideSpritetable {true};
     int spritesheetOverride {0};
     
+    bool isPaused {false};
+    bool shouldAdvanceOneFrame{false};
+    
     //logging
     bool shouldLogToStdout {true};
     bool shouldPrintFrameNumbers {false};

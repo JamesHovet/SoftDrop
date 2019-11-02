@@ -245,14 +245,21 @@ void holdWindowOpen() {
 static void drawLoggingFilterButtons(){
     ImGui::Checkbox("log to stdout", &(debugOptions->shouldLogToStdout));
     for(auto s : Log::logLevelStrings){
+        Log::Level level = Log::logLevelStringMap.at(s.name).level;
+        bool doesCurrentLevelPassFilter = Log::doesPassFilter(level);
         ImGui::SameLine();
+        if(doesCurrentLevelPassFilter){
+            ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(1.0f, 0.8f, 0.8f));
+        }
         if(ImGui::Button(s.name)){
-            Log::Level level = Log::logLevelStringMap.at(s.name).level;
-            if(!Log::doesPassFilter(level)){
+            if(!doesCurrentLevelPassFilter){
                 Log::g_filter |= level;
             } else {
                 Log::g_filter &= UINT_MAX - level;
             }
+        }
+        if(doesCurrentLevelPassFilter){
+            ImGui::PopStyleColor();
         }
     }
 }
@@ -273,6 +280,10 @@ static void drawImGuiGeneralOptions(Mapper& map, PPU& ppu, unsigned long& frame)
         debugOptions->shouldAdvanceOneFrame = true;
     }
     ImGui::SameLine(); ImGui::Text("frame: %lu", frame);
+    ImGui::SameLine();
+    if(ImGui::Button("Reset")){
+        debugOptions->shouldReset = true;
+    }
     
     ImGui::Checkbox("override spritesheet?", &(debugOptions->shouldOverrideSpritetable));
     if(debugOptions->shouldOverrideSpritetable){
@@ -378,6 +389,14 @@ int livePlay(std::string gameName, int spritesheet) {
                 logf(Log::Level::Controller, "Key Pressed: %s\n", pair.buttonName.c_str());
             }
         }
+        
+        //------------Reset if need be-------------
+        if(debugOptions->shouldReset){
+            cpu.reset();
+            frame = 0;
+            debugOptions->shouldReset = false;
+        }
+        
         
         //------------Run One Frame----------------
         if(!debugOptions->isPaused || debugOptions->shouldAdvanceOneFrame){

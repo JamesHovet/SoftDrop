@@ -24,6 +24,7 @@ public:
     
     bool isPaused {false};
     bool shouldAdvanceOneFrame{false};
+    bool shouldReset{false};
     
     //logging
     bool shouldLogToStdout {true};

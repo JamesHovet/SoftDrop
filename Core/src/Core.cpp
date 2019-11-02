@@ -1027,13 +1027,16 @@ unsigned short Core::pullAddress(){
 }
 
 /**
- Reset the virtual CPU -- setting the PC based on the reset
- vector in memory 0xFFFC
+ Reset the virtual CPU.
+ See http://wiki.nesdev.com/w/index.php/CPU_power_up_state for more.
  
  Changes: PC
  */
 void Core::reset(){
     PC = getIndirectWithWrapping(RESET_VECTOR_LOCATION);
+    clock = 0;
+    setIRQ();
+    SP -= 3;
 }
 
 // Utils

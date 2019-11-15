@@ -295,6 +295,8 @@ static void drawImGuiGeneralOptions(Mapper& map, PPU& ppu, unsigned long& frame)
     
     drawLoggingFilterButtons();
     
+    ImGui::Checkbox("log Ops", &(debugOptions->shouldLogOps));
+    
 //    unsigned short addrForDump = 0;
     static char addrCStringToConvert [5] = {};
     static char endOfDumpCStringToConvert [5] = {};

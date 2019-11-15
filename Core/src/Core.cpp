@@ -54,6 +54,13 @@ const std::string debugOpNames[] = {
     
 };
 
+const int debugOpBytes[] = {
+    1,2,0,0,0,2,2,0,1,2,1,0,0,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,3,2,0,0,2,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,1,2,0,0,0,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,1,2,0,0,0,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,0,2,0,0,2,2,2,0,1,0,1,0,3,3,3,0,2,2,0,0,2,2,2,0,0,3,1,0,0,3,0,0,2,2,2,0,2,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,2,2,2,0,1,3,1,0,3,3,3,0,2,2,0,0,2,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0,2,2,0,0,2,2,2,0,1,2,1,0,3,3,3,0,2,2,0,0,0,2,2,0,1,3,0,0,0,3,3,0
+};
+
+#include "Main/src/DebugOptions.hpp"
+extern DebugOptions* debugOptions;
+
 inline static unsigned short promoteUnsigned(char byte){
     return (((unsigned short)byte)&0xff);
 }
@@ -165,29 +172,29 @@ int Core::step(){
     AddressMode mode = getAddressModeFromOpcode(op);
     
     //debug
-#ifdef CUSTOM_DEBUG
-    
-    printf("[Core]\t");
-    printf("$%04x:%02x", PC - 1, Utils::printable(op));
-    printf("\t");
-    printf("A:%2x\tX:%2x\tY:%2x\tSP:%2x\tf:%2x\t",
-           Utils::printable(A),
-           Utils::printable(X),
-           Utils::printable(Y),
-           Utils::printable(SP),
-           Utils::printable(flags));
-    
-    std::cout << debugOpNames[op_u];
-    
-    for(int i = 0; i < debugOpBytes[op_u] - 1; i++){
-        std::cout << " " << std::hex << Utils::printable(m.getByte(PC + i));
+    if (debugOptions->shouldLogOps){
+        printf("[Core]\t");
+        printf("$%04x:%02x", PC - 1, Utils::printable(op));
+        printf("\t");
+        printf("A:%2x\tX:%2x\tY:%2x\tSP:%2x\tf:%2x\t",
+               Utils::printable(A),
+               Utils::printable(X),
+               Utils::printable(Y),
+               Utils::printable(SP),
+               Utils::printable(flags));
+        
+        std::cout << debugOpNames[op_u];
+        
+        for(int i = 0; i < debugOpBytes[op_u] - 1; i++){
+            std::cout << " " << std::hex << Utils::printable(m.getByte(PC + i));
+        }
+        
+        printf("\tCYC:%lu", clock);
+        printf("\tM:%d", mode);
+        
+        std::cout << std::endl;
     }
-    
-    printf("\tCYC:%lu", clock);
-    printf("\tM:%d", mode);
-    
-    std::cout << std::endl;
-#endif
+//#endif
     
     // increment the clock
     clock += cycleCounts[op_u];

@@ -8,6 +8,9 @@
 
 #include "Mapper001.hpp"
 
+#include "Main/src/DebugOptions.hpp"
+extern DebugOptions* debugOptions;
+
 Mapper001::Mapper001(){
     memory = new char[0x0800];
 }
@@ -62,6 +65,8 @@ void Mapper001::setByte(unsigned short address, char byte){
                 if(address <= 0x9FFF){
                     Register_Control = data;
                 } else if(address <= 0xBFFF){
+                    //TODO: Remove hack
+                    debugOptions->spritesheetOverride = data;
                     Register_CHR0 = data;
                     logf(Log::Level::Mapper | Log::Level::SubMapper,"Switching CHR0 Bank to %x\n", data);
                 } else if(address <= 0xDFFF){

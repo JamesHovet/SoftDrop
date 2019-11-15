@@ -29,6 +29,7 @@ public:
     //logging
     bool shouldLogToStdout {true};
     bool shouldPrintFrameNumbers {false};
+    bool shouldLogOps {false};
 };
 
 #endif /* DebugOptions_h */

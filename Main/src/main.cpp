@@ -304,13 +304,15 @@ static void drawImGuiGeneralOptions(Mapper& map, PPU& ppu, unsigned long& frame)
     ImGui::InputText("Length of Dump", endOfDumpCStringToConvert, 5);
     if(ImGui::Button("Hex Dump CPU")){
         unsigned short start = Utils::convertHexStringToUnsignedShort(addrCStringToConvert, 4);
-        unsigned short end = Utils::convertHexStringToUnsignedShort(endOfDumpCStringToConvert, 4);
+        unsigned short end = start +
+            Utils::convertHexStringToUnsignedShort(endOfDumpCStringToConvert, 4);
         hexDumpCPU(map, start, end);
     }
     ImGui::SameLine();
     if(ImGui::Button("Hex Dump PPU")){
         unsigned short start = Utils::convertHexStringToUnsignedShort(addrCStringToConvert, 4);
-        unsigned short end = Utils::convertHexStringToUnsignedShort(endOfDumpCStringToConvert, 4);
+        unsigned short end = start +
+            Utils::convertHexStringToUnsignedShort(endOfDumpCStringToConvert, 4);
         hexDumpPPU(map, start, end);
     }
     

@@ -113,7 +113,7 @@ inline char Mapper001::getByte(unsigned short address){
 inline char* Mapper001::getPointerAt(unsigned short address){
     char* superRes = Mapper::getPointerAt(address);
     if(superRes != nullptr){
-        return Mapper::getPointerAt(address);
+        return superRes;
     }
     
     if(address >= 0x6000 && address < 0x8000){

@@ -197,7 +197,13 @@ void PPU::renderNametable(char *begin, int sheetNumber){
         int posY = CoarseY + (i / numTilesX);
         
         unsigned short nametableTile = ((posX/numTilesX) * 0x400) + (posX % numTilesX) +
-        ((posY/numTilesY) * 0x800) + ((posY % numTilesY) * 0x20);
+                                        ((posY/numTilesY) * 0x800) + ((posY % numTilesY) * 0x20);
+        
+        if(map.inesMirrorBit){
+            nametableTile = nametableTile % 0x800;
+        } else {
+            nametableTile = ((nametableTile / 0x800) * 0x800) + (nametableTile % 0x400);
+        }
         
         int attributeTableCell = ((posX % 32)/4) + (((posY % 32)/4) * 8);
         //        int nametable = (posX/32) + ((posY/30) * 2);

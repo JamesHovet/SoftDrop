@@ -34,8 +34,17 @@ public:
     
     char* CHR;
     
-    virtual int readINES(std::ifstream &openFile) = 0;
     char header[0x10];
+    bool inesMirrorBit = false;
+    virtual int readINES(std::ifstream &file){
+        file.seekg(0, std::ios::beg);
+        file.read(header, 0x10);
+        
+        inesMirrorBit = Utils::getBitInByte(header[6],0);
+        
+        return 0;
+    };
+    
     
     virtual void setByte(unsigned short address, char byte);
     virtual char getByte(unsigned short address);

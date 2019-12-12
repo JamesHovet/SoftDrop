@@ -96,7 +96,14 @@ char Mapper::getPPU(unsigned short address){
  @return pointer to the real location of the given virtual VRAM location
  */
 char* Mapper::getPPUPointerAt(unsigned short address){
-    if(address >= 0x2000){
+    if(address < 0x3F00 ){
+        unsigned short shifted = ((address - 0x2000) % 0x2000);
+        if(inesMirrorBit){ //Vertical Mirroring
+            return &VRAM[shifted % 0x800];
+        } else { //Horizontal Mirroring
+            return &VRAM[((shifted / 0x800) * 0x800) + (shifted % 0x400)];
+        }
+    } else {
         return &VRAM[address - 0x2000];
     }
     return nullptr;

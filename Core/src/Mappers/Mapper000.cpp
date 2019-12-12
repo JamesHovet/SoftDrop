@@ -20,13 +20,9 @@ Mapper000::~Mapper000(){
 }
 
 int Mapper000::readINES(std::ifstream &file){
-    
-    file.seekg(0, std::ios::beg);
-    file.read(header, 0x10);
-    
     char* PRG_ROM = &memory[0x8000];
     
-    file.seekg(16, std::ios::beg); // after header
+    file.seekg(0x10, std::ios::beg); // after header
     file.read(PRG_ROM, 0x4000);
     //TODO: Actually check to see if Ines 2.0 header specifies size of PRG ROM;
     memcpy(PRG_ROM + 0x4000, PRG_ROM, 0x4000 * sizeof(char));

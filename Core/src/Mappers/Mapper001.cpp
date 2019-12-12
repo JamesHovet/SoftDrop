@@ -23,14 +23,13 @@ Mapper001::~Mapper001(){
 }
 
 int Mapper001::readINES(std::ifstream &file){
-    
-    file.seekg(0, std::ios::beg);
-    file.read(header, 0x10);
+    Mapper::readINES(file);
     
     NumPRGBanks = header[4];
     PRG_ROM_C000_Bank = NumPRGBanks - 1; // initialize to
     NumCHRBanks = header[5];
     
+    file.seekg(0x10, std::ios::beg);
     PRG = new char[0x4000 * NumPRGBanks];
     file.read(PRG, 0x4000 * NumPRGBanks);
     CHR = new char[0x2000 * NumCHRBanks];

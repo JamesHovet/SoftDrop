@@ -77,7 +77,7 @@ const SDL_Color colors[0x40] = {
 
 /**
  Generate a new PPU with a given memory mapper and a given SDL_Renderer.
-
+ 
  @param mapper the mapper to be used for this PPU
  @param renderer the renderer to be used for this PPU
  */
@@ -134,13 +134,13 @@ void PPU::generateStaticSpritesheets(){
         SDL_BlitSurface(spriteSurface, NULL, staticSpritesheets[i / 256], &dst);
     }
     SDL_FreeSurface(spriteSurface);
-
+    
 }
 
 /**
  Render a debug view of the 64x64 spritesheet at a given index to this PPU's renderer. Useful
  for debugging/testing.
-
+ 
  @param sheet the index of the desired 64x64 spritesheet
  */
 void PPU::renderSpritesheet(int sheet){
@@ -167,8 +167,11 @@ void PPU::renderSpritesheet(int sheet){
 void PPU::renderNametable(char *begin, int sheetNumber){
     const int numTilesX = 256/8;
     const int numTilesY = 240/8;
-    unsigned char* tile = (unsigned char*)begin;
-    unsigned char* attributeTable = (unsigned char*)begin + 0x3c0;
+    
+    unsigned char CoarseX = map.getPPUSCROLLX() / 8;
+    unsigned char CoarseY = map.getPPUSCROLLY() / 8;
+    unsigned char FineX = map.getPPUSCROLLX() % 8;
+    unsigned char FineY = map.getPPUSCROLLY() % 8;
     
     SDL_Surface* currentSpritesheet = staticSpritesheets[sheetNumber];
     
@@ -188,33 +191,40 @@ void PPU::renderNametable(char *begin, int sheetNumber){
     SDL_SetPaletteColors(currentSpritesheet->format->palette, debugTmpPaletteColors, 0, 4);
     
     for(int i = 0; i < numTilesX * numTilesY; i ++){
-        int cell = ((i / 128) * 8) + ((i % 32) / 4);
-        int shift = i % 4 >= 2 ? 2 : 0;
+        int posX = CoarseX + (i % numTilesX);
+        int posY = CoarseY + (i / numTilesX);
+        
+        unsigned short nametableTile = ((posX/numTilesX) * 0x400) + (posX % numTilesX) +
+        ((posY/numTilesY) * 0x800) + ((posY % numTilesY) * 0x20);
+        
+        int attributeTableCell = ((i / 128) * 8) + ((i % 32) / 4);
+        int AttributeTableShift = i % 4 >= 2 ? 2 : 0;
         if(i % 4 >= 2){
-            shift = 2;
+            AttributeTableShift = 2;
         } else {
-            shift = 0;
+            AttributeTableShift = 0;
         }
         if(i % 128 >= 64){
-            shift += 4;
+            AttributeTableShift += 4;
         }
-        int paletteNumber = (*(attributeTable + cell) >> shift) & '\x03';
+        unsigned char* attributeTable = (unsigned char*)begin + ((nametableTile / 0x400) * 0x400) + 0x3c0;
+        int paletteNumber = (*(attributeTable + attributeTableCell) >> AttributeTableShift) & '\x03';
         
-        int tileNumber = *tile;
+        int nametableValueForTile = *((unsigned char*)(nametableTile + begin));
         
-        src.x = 8 * (tileNumber % 16);
-        src.y = 8 * (tileNumber / 16);
+        src.x = 8 * (nametableValueForTile % 16);
+        src.y = 8 * (nametableValueForTile / 16);
         
-        dst.x = 8 * (i % numTilesX);
-        dst.y = 8 * (i / numTilesX);
+        dst.x = 8 * (i % numTilesX) - FineX;
+        dst.y = 8 * (i / numTilesX) - FineY;
         
-        logf(Log::Level::PPU,"%3d,%3d\tt:%02x\tp:%02x\tc:%3d\n", dst.x, dst.y, tileNumber,paletteNumber, cell);
+        logf(Log::Level::PPU,"%3d,%3d\tt:%02x\tp:%02x\tc:%3d\tsx:%02x\tsy:%02x\n",
+             dst.x, dst.y, nametableValueForTile,paletteNumber, attributeTableCell, CoarseX, CoarseY);
         
         setTmpPaletteColors(paletteNumber);
         SDL_SetPaletteColors(currentSpritesheet->format->palette, &tmpColors[0], 0, 4);
         SDL_BlitSurface(currentSpritesheet, &src, output, &dst);
         
-        tile += 1;
     }
     outputTexture = SDL_CreateTextureFromSurface(ppuRenderer, output);
     SDL_RenderCopy(ppuRenderer, outputTexture, NULL, NULL);
@@ -225,59 +235,7 @@ void PPU::renderNametable(char *begin, int sheetNumber){
 }
 
 void PPU::renderNametable(unsigned short start, int sheetNumber){
-    const int numTilesX = 256/8;
-    const int numTilesY = 240/8;
-    
-    SDL_Surface* currentSpritesheet = staticSpritesheets[sheetNumber];
-    
-    SDL_Surface* output = SDL_CreateRGBSurfaceWithFormat(0, 256, 240, 32, SDL_PIXELFORMAT_RGBA32);
-    SDL_Texture* outputTexture;
-    
-    SDL_Rect src{0,0,8,8};
-    SDL_Rect dst{0,0,8,8};
-    
-    //delete
-    SDL_Color debugTmpPaletteColors[4] = {
-        SDL_Color{0,0,0,0},
-        SDL_Color{255,0,0,255},
-        SDL_Color{255,255,255,255},
-        SDL_Color{0,0,255,255}
-    };
-    SDL_SetPaletteColors(currentSpritesheet->format->palette, debugTmpPaletteColors, 0, 4);
-    
-    for(int i = 0; i < numTilesX * numTilesY; i ++){
-        int cell = ((i / 128) * 8) + ((i % 32) / 4);
-        int shift = i % 4 >= 2 ? 2 : 0;
-        if(i % 4 >= 2){
-            shift = 2;
-        } else {
-            shift = 0;
-        }
-        if(i % 128 >= 64){
-            shift += 4;
-        }
-        
-        int paletteNumber = (map.getPPU(start + cell) >> shift) & '\x03';
-        int tileNumber = map.getPPU(start + i);
-        
-        src.x = 8 * (tileNumber % 16);
-        src.y = 8 * (tileNumber / 16);
-        
-        dst.x = 8 * (i % numTilesX);
-        dst.y = 8 * (i / numTilesX);
-        
-        logf(Log::Level::PPU,"%3d,%3d\tt:%02x\tp:%02x\tc:%3d\n", dst.x, dst.y, tileNumber,paletteNumber, cell);
-        
-        setTmpPaletteColors(paletteNumber);
-        SDL_SetPaletteColors(currentSpritesheet->format->palette, &tmpColors[0], 0, 4);
-        
-        SDL_BlitSurface(currentSpritesheet, &src, output, &dst);
-    }
-    outputTexture = SDL_CreateTextureFromSurface(ppuRenderer, output);
-    SDL_RenderCopy(ppuRenderer, outputTexture, NULL, NULL);
-    
-    SDL_FreeSurface(output);
-    SDL_DestroyTexture(outputTexture);
+    renderNametable(map.getPPUPointerAt(start), sheetNumber);
 }
 
 void PPU::renderSprites(int sheetNumber){

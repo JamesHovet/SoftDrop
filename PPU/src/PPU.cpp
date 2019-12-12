@@ -166,7 +166,8 @@ void PPU::renderSpritesheet(int sheet){
 }
 
 void PPU::renderNametable(char *begin, int sheetNumber){
-    const int numTilesX = 256/8;
+    const int numTilesX = 256/8 + 1;
+    //    const int numTilesX = 256/8;
     const int numTilesY = 240/8;
     
     unsigned char CoarseX = map.getPPUSCROLLX() / 8;
@@ -198,14 +199,15 @@ void PPU::renderNametable(char *begin, int sheetNumber){
         unsigned short nametableTile = ((posX/numTilesX) * 0x400) + (posX % numTilesX) +
         ((posY/numTilesY) * 0x800) + ((posY % numTilesY) * 0x20);
         
-        int attributeTableCell = ((i / 128) * 8) + ((i % 32) / 4);
-        int AttributeTableShift = i % 4 >= 2 ? 2 : 0;
-        if(i % 4 >= 2){
+        int attributeTableCell = ((posX % 32)/4) + (((posY % 32)/4) * 8);
+        //        int nametable = (posX/32) + ((posY/30) * 2);
+        int AttributeTableShift = posX % 4 >= 2 ? 2 : 0;
+        if(posX % 4 >= 2){
             AttributeTableShift = 2;
         } else {
             AttributeTableShift = 0;
         }
-        if(i % 128 >= 64){
+        if(posY % 4 >= 2){
             AttributeTableShift += 4;
         }
         unsigned char* attributeTable = (unsigned char*)begin + ((nametableTile / 0x400) * 0x400) + 0x3c0;

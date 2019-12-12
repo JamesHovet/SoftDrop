@@ -7,6 +7,7 @@
 //
 
 #include "PPU.hpp"
+#include "Utils/Utils.hpp"
 
 const SDL_Color colors[0x40] = {
     SDL_Color{84,84,84,255},
@@ -239,6 +240,10 @@ void PPU::renderNametable(unsigned short start, int sheetNumber){
 }
 
 void PPU::renderSprites(int sheetNumber){
+    if(!map.shouldShowSprites()){
+        return;
+    }
+    
     SDL_Surface* output = SDL_CreateRGBSurfaceWithFormat(0, 256, 240, 32, SDL_PIXELFORMAT_RGBA32);
     SDL_FillRect(output, NULL, 0);
     SDL_Texture* outputTexture;
@@ -281,7 +286,11 @@ void PPU::renderSprites(int sheetNumber){
 
 void PPU::setTmpPaletteColors(int paletteNumber){
     unsigned short firstAddr = 0x3f01 + (0x4 * paletteNumber);
-    tmpColors[0] = colors[map.getPPU(0x3f00)]; // universal background
+    if(map.shouldShowBackground()){
+        tmpColors[0] = colors[map.getPPU(0x3f00)]; // universal background
+    } else {
+        tmpColors[0] = SDL_Color{0,0,0,0}; //TODO: Decide if opacity = 0 or opacity = 255
+    }
     for(int i = 0; i < 3; i++){
         unsigned char colorIndex = (unsigned char)map.getPPU(firstAddr + i);
         tmpColors[i + 1] = colors[colorIndex];

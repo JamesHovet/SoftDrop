@@ -39,6 +39,25 @@ namespace Utils {
         
         return running;
     }
+    
+    /**
+     Get the value of bits A through B shifted down. For example, if you want
+     the value of bits 2 through 4 inclusive of the byte 0b00000110,
+     f(2,3) would return 0b00000001 or 1
+     
+     @param v the original byte
+     @param lower the lowest bit of the range
+     @param len the number of bits to get
+     @return the shifted value of the bits in the range
+     */
+    static unsigned char getShiftedValueOfBitRange(unsigned char v, int lower, int len){
+        unsigned char tmp = v << (8 - (lower + len));
+        return tmp >> (8 - len);
+    }
+    
+    static bool getBitInByte(unsigned char v, int bit){
+        return v & (0x01 << bit);
+    }
 }
 
 #endif /* Utils_hpp */

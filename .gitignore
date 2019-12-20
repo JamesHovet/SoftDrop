@@ -1,6 +1,7 @@
 *.xcodeproj/
 DerivedData/
 *.xlsx
+*imgui.ini
 
 Build/
 Index/

@@ -16,9 +16,9 @@ int runNestest();
 int run_instr_test_v5();
 int livePlay(std::string fileName, int spritesheet);
 
-static void hexDump(Core &cpu, unsigned short start, unsigned short end);
-static void hexDumpCPU(Mapper& m, unsigned short start, unsigned short end);
-static void hexDumpPPU(Mapper& m, unsigned short start, unsigned short end);
+void hexDumpCPU(Mapper& m, unsigned short start, unsigned short end);
+void hexDumpPPU(Mapper& m, unsigned short start, unsigned short end);
+void hexDumpOAM(Mapper& m);
 
 bool window_init();
 void window_close();
@@ -315,6 +315,10 @@ static void drawImGuiGeneralOptions(Mapper& map, PPU& ppu, unsigned long& frame)
             Utils::convertHexStringToUnsignedShort(endOfDumpCStringToConvert, 4);
         hexDumpPPU(map, start, end);
     }
+    ImGui::SameLine();
+    if(ImGui::Button("Hex Dump OAM")){
+        hexDumpOAM(map);
+    }
     
     ImGui::End();
 }
@@ -506,26 +510,7 @@ int runPPUTestOne() {
     return 0;
 }
 
-static void hexDump(Core &cpu, unsigned short start, unsigned short end) {
-    for(int i = start; i < end; i+=0x10){
-        printf("[Main]\t");
-        printf("$%04x: ", i);
-        for(int j = 0; j < 0x10; j++){
-            printf("%02x ", Utils::printable(cpu.m.getByte(i + j)));
-        }
-        for(int j = 0; j < 0x10; j++){
-            char c = cpu.m.getByte(i + j);
-            if(c > 31 && c < 127){
-                std::cout << c;
-            } else {
-                std::cout << '.';
-            }
-        }
-        printf("\n");
-    }
-}
-
-static void hexDumpCPU(Mapper& m, unsigned short start, unsigned short end) {
+void hexDumpCPU(Mapper& m, unsigned short start, unsigned short end) {
     for(int i = start; i < end; i+=0x10){
         printf("[Main]\t");
         printf("$%04x: ", i);
@@ -544,7 +529,7 @@ static void hexDumpCPU(Mapper& m, unsigned short start, unsigned short end) {
     }
 }
 
-static void hexDumpPPU(Mapper& m, unsigned short start, unsigned short end) {
+void hexDumpPPU(Mapper& m, unsigned short start, unsigned short end) {
     for(int i = start; i < end; i+=0x10){
         printf("[Main]\t");
         printf("$%04x: ", i);
@@ -553,6 +538,25 @@ static void hexDumpPPU(Mapper& m, unsigned short start, unsigned short end) {
         }
         for(int j = 0; j < 0x10; j++){
             char c = m.getPPU(i + j);
+            if(c > 31 && c < 127){
+                std::cout << c;
+            } else {
+                std::cout << '.';
+            }
+        }
+        printf("\n");
+    }
+}
+
+void hexDumpOAM(Mapper& m) {
+    for (int i = 0; i < 256; i+= 0x10){
+        printf("[Main]\t");
+        printf("$%04x: ", i);
+        for(int j = 0; j < 0x10; j++){
+            printf("%02x ", Utils::printable(m.OAM[i + j]));
+        }
+        for(int j = 0; j < 0x10; j++){
+            char c = m.OAM[i + j];
             if(c > 31 && c < 127){
                 std::cout << c;
             } else {
@@ -587,14 +591,14 @@ int run_instr_test_v5() {
     while(cpu.step() == 0){
         if(instructionCount % 0x10000 == 0){
             std::cout << "------" << instructionCount << "------" << std::endl;
-            hexDump(cpu, 0x6000, 0x6100);
+            hexDumpCPU(map, 0x6000, 0x6100);
             instructionCount += 0;
         }
         instructionCount++;
     }
 
 
-    hexDump(cpu, 0x6000, 0x7000);
+    hexDumpCPU(map, 0x6000, 0x7000);
 
     return 0;
 }

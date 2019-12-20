@@ -84,7 +84,8 @@ const SDL_Color colors[0x40] = {
  */
 PPU::PPU(Mapper& mapper, SDL_Renderer* renderer):map(mapper){
     ppuRenderer = renderer;
-    numStaticSpritesheets = mapper.header[5] > 0 ? mapper.header[5] * 2 : 2;
+//    numStaticSpritesheets = mapper.header[5] > 0 ? mapper.header[5] * 2 : 2;
+    numStaticSpritesheets = mapper.header[5] > 0 ? mapper.header[5] : 1;
     staticSpritesheets = new SDL_Surface*[numStaticSpritesheets];
     generateStaticSpritesheets();
 }
@@ -103,11 +104,11 @@ PPU::~PPU(){
  Store those spritesheets in an array of SDL_Surface*'s. Each spritesheet is in indexed color.
  */
 void PPU::generateStaticSpritesheets(){
-    const int totalNumTiles = 0x10 * 0x10 * numStaticSpritesheets;
-    unsigned char tiles[totalNumTiles][0x40];
+    const int totalNumTiles = 0x20 * 0x10 * numStaticSpritesheets;
+    unsigned char tiles[totalNumTiles][0x8 * 0x8];
     unsigned char* chr = (unsigned char*)map.CHR;
     
-    // extract and decode all 8x8 tiles into 64 width arrays of 4 channel indexed color.
+    // extract and decode all 8x8 tiles into 256 width arrays of 4 channel indexed color.
     // see https://wiki.nesdev.com/w/index.php/PPU_pattern_tables for the encoding format
     for(int t = 0; t < totalNumTiles; t++){
         for(int i = 0; i < 0x8; i++){
@@ -119,9 +120,9 @@ void PPU::generateStaticSpritesheets(){
         }
         chr += 0x8;
     }
-    // create as many empty 128x128 8 bit indexed color surfaces as needed
+    // create as many empty 256x128 8 bit indexed color surfaces as needed
     for(int i = 0; i < numStaticSpritesheets; i++){
-        staticSpritesheets[i] = SDL_CreateRGBSurfaceWithFormat(0, 128, 128, 8, SDL_PIXELFORMAT_INDEX8);
+        staticSpritesheets[i] = SDL_CreateRGBSurfaceWithFormat(0, 256, 128, 8, SDL_PIXELFORMAT_INDEX8);
     }
     // create a temporary 8x8 surface to hold each tile
     SDL_Surface* spriteSurface = SDL_CreateRGBSurfaceWithFormatFrom(tiles, 8, 8, 8, 8, SDL_PIXELFORMAT_INDEX8);
@@ -130,9 +131,9 @@ void PPU::generateStaticSpritesheets(){
     SDL_Rect dst; dst.w = 8; dst.h = 8;
     for(int i = 0; i < totalNumTiles; i++){
         spriteSurface->pixels = tiles[i];
-        dst.x = (8 * i) % 128;
+        dst.x = ((8 * i) % 128) + (((i / 256) % 2) * 128);
         dst.y = ((i % 256) / 16) * 8;
-        SDL_BlitSurface(spriteSurface, NULL, staticSpritesheets[i / 256], &dst);
+        SDL_BlitSurface(spriteSurface, NULL, staticSpritesheets[i / 512], &dst);
     }
     SDL_FreeSurface(spriteSurface);
     
@@ -153,7 +154,7 @@ void PPU::renderSpritesheet(int sheet){
     };
     SDL_SetPaletteColors(staticSpritesheets[sheet]->format->palette, debugTmpPaletteColors, 0, 4);
     
-    SDL_Surface* spritesheetSurfaceRGBA32 = SDL_CreateRGBSurfaceWithFormat(0, 128, 128, 32, SDL_PIXELFORMAT_RGBA32);
+    SDL_Surface* spritesheetSurfaceRGBA32 = SDL_CreateRGBSurfaceWithFormat(0, 256, 128, 32, SDL_PIXELFORMAT_RGBA32);
     
     SDL_BlitSurface(staticSpritesheets[sheet], NULL, spritesheetSurfaceRGBA32, NULL);
     

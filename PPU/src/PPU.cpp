@@ -84,7 +84,7 @@ const SDL_Color colors[0x40] = {
  */
 PPU::PPU(Mapper& mapper, SDL_Renderer* renderer):map(mapper){
     ppuRenderer = renderer;
-    numStaticSpritesheets = mapper.header[5] > 0 ? mapper.header[5] * 5 : 2;
+    numStaticSpritesheets = mapper.header[5] > 0 ? mapper.header[5] * 2 : 2;
     staticSpritesheets = new SDL_Surface*[numStaticSpritesheets];
     generateStaticSpritesheets();
 }
@@ -176,6 +176,8 @@ void PPU::renderNametable(char *begin, int sheetNumber){
     unsigned char FineY = map.getPPUSCROLLY() % 8;
     
     SDL_Surface* currentSpritesheet = staticSpritesheets[sheetNumber];
+//    SDL_Surface* currentSpritesheet = staticSpritesheets[sheetNumber * 2 +
+//                                                         map.getBackgroundPatternTableShift()];
     
     SDL_Surface* output = SDL_CreateRGBSurfaceWithFormat(0, 256, 240, 32, SDL_PIXELFORMAT_RGBA32);
     SDL_Texture* outputTexture;
@@ -197,7 +199,8 @@ void PPU::renderNametable(char *begin, int sheetNumber){
         int posY = CoarseY + (i / numTilesX);
         
         unsigned short nametableTile = ((posX/numTilesX) * 0x400) + (posX % numTilesX) +
-                                        ((posY/numTilesY) * 0x800) + ((posY % numTilesY) * 0x20);
+                                        ((posY/numTilesY) * 0x800) + ((posY % numTilesY) * 0x20) +
+                                        (map.getBaseNametable() * 0x400);
         
         if(map.inesMirrorBit){
             nametableTile = nametableTile % 0x800;

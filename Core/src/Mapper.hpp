@@ -66,10 +66,12 @@ public:
     void clearVBlank();
     
     //Register 2000: PPUCTRL
+    unsigned char getBaseNametable(){return Utils::getShiftedValueOfBitRange(PPU[0], 0, 2);}
+    bool getBackgroundPatternTableShift(){return Utils::getBitInByte(PPU[0], 4);}
     
     //Register 2001: PPUMASK
-    bool shouldShowSprites(){return Utils::getBitInByte(APUIO[1], 4);}
-    bool shouldShowBackground(){return Utils::getBitInByte(APUIO[1], 3);}
+    bool shouldShowSprites(){return Utils::getBitInByte(PPU[1], 4);}
+    bool shouldShowBackground(){return Utils::getBitInByte(PPU[1], 3);}
     //Register 2001: PPUSTATUS
     
     //Register 2003: OAMADDR

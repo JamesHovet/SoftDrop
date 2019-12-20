@@ -65,7 +65,7 @@ void Mapper001::setByte(unsigned short address, char byte){
                     Register_Control = data;
                 } else if(address <= 0xBFFF){
                     //TODO: Remove hack
-                    debugOptions->spritesheetOverride = data;
+//                    debugOptions->spritesheetOverride = data;
                     Register_CHR0 = data;
                     logf(Log::Level::Mapper | Log::Level::SubMapper,"Switching CHR0 Bank to %x\n", data);
                 } else if(address <= 0xDFFF){

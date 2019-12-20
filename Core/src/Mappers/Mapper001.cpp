@@ -105,7 +105,15 @@ inline char Mapper001::getByte(unsigned short address){
     if(Mapper::getPointerAt(address) != nullptr){
         return Mapper::getByte(address);
     } else {
-        return *getPointerAt(address);
+        if(address >= 0x6000 && address < 0x8000){
+            return RAM[address - 0x6000];
+        } else if(address < 0xC000){
+            unsigned int offset = address - 0x8000;
+            return *(PRG + offset + (0x4000 * PRG_ROM_8000_Bank));
+        } else {
+            unsigned int offset = address - 0xC000;
+            return *(PRG + offset + (0x4000 * PRG_ROM_C000_Bank));
+        }
     }
 }
 

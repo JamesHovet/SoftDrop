@@ -40,20 +40,16 @@ void Mapper000::setByte(unsigned short address, char byte){
 }
 
 inline char Mapper000::getByte(unsigned short address){
-    if(Mapper::getPointerAt(address) != nullptr){
-        return Mapper::getByte(address);
-    } else {
-        return *getPointerAt(address);
-    }
+    return *getPointerAt(address);
 }
 
 inline char* Mapper000::getPointerAt(unsigned short address){
     char* superRes = Mapper::getPointerAt(address);
     if(superRes != nullptr){
         return superRes;
-    } else {
-        return &memory[address];
     }
+    
+    return &memory[address];
 }
 
 inline char Mapper000::getPPU(unsigned short address){

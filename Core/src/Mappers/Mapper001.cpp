@@ -102,11 +102,7 @@ void Mapper001::setByte(unsigned short address, char byte){
 }
 
 inline char Mapper001::getByte(unsigned short address){
-    if(Mapper::getPointerAt(address) != nullptr){
-        return Mapper::getByte(address);
-    } else {
-        return *getPointerAt(address);
-    }
+    return *getPointerAt(address);
 }
 
 inline char* Mapper001::getPointerAt(unsigned short address){

@@ -186,12 +186,13 @@ bool window_init()
         
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
+        ImGuiSDL::Initialize(g_renderer, 800, 600);
 //        ImGuiIO& io = ImGui::GetIO(); (void)io;
         
         ImGui::StyleColorsDark();
         
         ImGui_ImplSDL2_InitForOpenGL(g_window, gl_context);
-        ImGui_ImplOpenGL3_Init(glsl_version);
+//        ImGui_ImplOpenGL3_Init(glsl_version);
         
         
     }
@@ -202,7 +203,7 @@ bool window_init()
 
 void window_close()
 {
-    ImGui_ImplOpenGL3_Shutdown();
+//    ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
     
@@ -377,7 +378,7 @@ int livePlay(std::string gameName, int spritesheet) {
         }
         
         //------------Imgui New Frame----------------
-        ImGui_ImplOpenGL3_NewFrame();
+//        ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame(g_window);
         ImGui::NewFrame();
         
@@ -442,7 +443,8 @@ int livePlay(std::string gameName, int spritesheet) {
         
         //imgui drawing
         ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        ImGuiSDL::Render(ImGui::GetDrawData());
+//        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         
         SDL_RenderPresent(g_renderer);
 

@@ -14,9 +14,10 @@
 
 #include "libs/imgui/imgui.h"
 #include "libs/imgui/imgui_impl_sdl.h"
-#include "libs/imgui/imgui_impl_opengl3.h"
+//#include "libs/imgui/imgui_impl_opengl3.h"
 
 #include <SDL2/SDL.h>
+#include "libs/imgui/imgui_sdl.h"
 #include <glew.h>
 
 #include "boost/program_options.hpp"

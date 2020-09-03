@@ -4,5 +4,6 @@ DerivedData/
 *imgui.ini
 **/.DS_Store
 
-Build/
+Build/*
+!Build/CMakeLists.txt
 Index/

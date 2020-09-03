@@ -18,7 +18,8 @@
 
 #include <SDL2/SDL.h>
 #include "libs/imgui/imgui_sdl.h"
-#include <glew.h>
+#pragma clang diagnostic pop
+#include <GL/glew.h>
 
 #include "boost/program_options.hpp"
 

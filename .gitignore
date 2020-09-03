@@ -2,6 +2,7 @@
 DerivedData/
 *.xlsx
 *imgui.ini
+**/.DS_Store
 
 Build/
 Index/
